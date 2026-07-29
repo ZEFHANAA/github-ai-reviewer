@@ -62,6 +62,11 @@ class GitHubRepositoryService
                 $paths = [...$paths, ...$githubPaths];
                 $requests++;
 
+                if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github/ISSUE_TEMPLATE', $githubPaths, true)) {
+                    $paths = [...$paths, ...$this->contents($repository, '.github/ISSUE_TEMPLATE', $metadata->defaultBranch)];
+                    $requests++;
+                }
+
                 if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github/workflows', $githubPaths, true)) {
                     $paths = [...$paths, ...$this->contents($repository, '.github/workflows', $metadata->defaultBranch)];
                     $requests++;

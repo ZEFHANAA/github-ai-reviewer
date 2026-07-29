@@ -27,6 +27,35 @@ class DeterministicRepositoryAnalysisService
         $hasChangelog = $this->matchAnyPath($s, ['changelog', 'changelog.md', '.github/changelog.md', 'docs/changelog.md', 'releases']);
         $changelog = $hasChangelog ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
 
+        // Rule E: GitHub Community Health templates
+        $githubUnavailable = $this->isUnavailable($s, '.github');
+
+        $hasIssueTemplate = $this->matchAnyPath($s, [
+            '.github/issue_template',
+            '.github/issue_template.md',
+            '.github/ISSUE_TEMPLATE',
+            '.github/ISSUE_TEMPLATE.md',
+        ]) || $s->starts('.github/issue_template/') || $s->starts('.github/ISSUE_TEMPLATE/');
+        $issueTemplate = $hasIssueTemplate ? true : ($githubUnavailable ? null : false);
+
+        $hasBugTemplate = $s->starts('.github/issue_template/') || $s->starts('.github/ISSUE_TEMPLATE/')
+            ? collect($s->paths)->contains(fn ($p) => $this->matchIssueTemplateBasename($p, ['bug']))
+            : $this->matchAnyPath($s, ['.github/issue_template/bug', '.github/issue_template/bug.md']);
+        $bugTemplate = $hasBugTemplate ? true : ($githubUnavailable ? null : false);
+
+        $hasFeatureTemplate = $s->starts('.github/issue_template/') || $s->starts('.github/ISSUE_TEMPLATE/')
+            ? collect($s->paths)->contains(fn ($p) => $this->matchIssueTemplateBasename($p, ['feature']))
+            : $this->matchAnyPath($s, ['.github/issue_template/feature', '.github/issue_template/feature.md']);
+        $featureTemplate = $hasFeatureTemplate ? true : ($githubUnavailable ? null : false);
+
+        $hasPrTemplate = $this->matchAnyPath($s, [
+            '.github/pull_request_template',
+            '.github/pull_request_template.md',
+            '.github/PULL_REQUEST_TEMPLATE',
+            '.github/PULL_REQUEST_TEMPLATE.md',
+        ]) || $s->starts('.github/pull_request_template/') || $s->starts('.github/PULL_REQUEST_TEMPLATE/') || $this->matchAnyPath($s, ['docs/pull_request_template', 'docs/pull_request_template.md']);
+        $prTemplate = $hasPrTemplate ? true : ($githubUnavailable ? null : false);
+
         // Rule A: Test detection
         $hasTests = $this->matchAnyPath($s, ['tests', 'test', 'spec', 'specs', '__tests__']);
         // Rule A Requirement: "Do not assume that missing test signals prove that the project has no tests." -> return unknown (null)
@@ -52,6 +81,10 @@ class DeterministicRepositoryAnalysisService
             $this->check('DOC-CONTRIBUTING-001', 'Documentation', $contributing, 'Contribution guidance', 'Contribution guidance was detected.', 'Contribution guidance not detected.', 'Consider adding CONTRIBUTING.md.'),
             $this->check('DOC-CONDUCT-001', 'Documentation', $conduct, 'Code of conduct', 'Code of conduct was detected.', 'Code of conduct not detected.', 'Consider adding CODE_OF_CONDUCT.md.'),
             $this->check('DOC-CHANGELOG-001', 'Documentation', $changelog, 'Changelog', 'Changelog documentation was detected.', 'Changelog not detected.', 'Consider maintaining a CHANGELOG.md.'),
+            $this->check('COMM-ISSUE-001', 'Documentation', $issueTemplate, 'Issue templates', 'Issue templates directory or issue forms were detected.', 'Issue templates were not detected.', 'Consider adding issue templates in .github/ISSUE_TEMPLATE.'),
+            $this->check('COMM-BUG-001', 'Documentation', $bugTemplate, 'Bug report template', 'Bug report issue template was detected.', 'Bug report template was not detected.', 'Consider adding a bug report template or form.'),
+            $this->check('COMM-FEATURE-001', 'Documentation', $featureTemplate, 'Feature request template', 'Feature request issue template was detected.', 'Feature request template was not detected.', 'Consider adding a feature request template or form.'),
+            $this->check('COMM-PR-001', 'Documentation', $prTemplate, 'Pull request template', 'Pull request template was detected.', 'Pull request template was not detected.', 'Consider adding a pull request template.'),
             $this->check('TEST-DIRECTORY-001', 'Testing', $tests, 'Test files', 'Recognizable test paths were detected.', 'Recognizable test paths were not detected. This does not measure coverage or test quality.', 'Add automated tests in a conventional directory.'),
             $this->check('TEST-CONFIG-001', 'Testing', $testConfig, 'Test configuration', 'A recognizable test configuration file was detected.', 'A recognizable test configuration file was not detected.', 'Add or document the test runner configuration.'),
             new AnalysisFinding('SEC-ENV-001', 'Security hygiene', $env ? 'warning' : 'pass', 'Environment file naming', $env ? 'A committed environment file name was detected. This is a potential hygiene risk, not proof that secrets are present.' : 'No obvious committed environment file name was detected.', $env ?: null, $env ? 'Review the file, remove any secrets, and rotate credentials if exposure is confirmed.' : null),
@@ -104,6 +137,20 @@ class DeterministicRepositoryAnalysisService
                         return true;
                     }
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /** @param list<string> $keywords */
+    private function matchIssueTemplateBasename(string $path, array $keywords): bool
+    {
+        $basename = strtolower(pathinfo($path, PATHINFO_FILENAME));
+
+        foreach ($keywords as $keyword) {
+            if (str_contains($basename, $keyword)) {
+                return true;
             }
         }
 

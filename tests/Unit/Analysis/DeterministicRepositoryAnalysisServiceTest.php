@@ -85,6 +85,44 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
         $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CHANGELOG-001')->status);
     }
 
+    public function test_it_detects_github_community_health_templates(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot([
+            '.github/ISSUE_TEMPLATE',
+            '.github/ISSUE_TEMPLATE/bug_report.md',
+            '.github/ISSUE_TEMPLATE/feature_request.yml',
+            '.github/PULL_REQUEST_TEMPLATE.md',
+        ]));
+
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'COMM-ISSUE-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'COMM-BUG-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'COMM-FEATURE-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'COMM-PR-001')->status);
+    }
+
+    public function test_it_returns_improvement_when_github_is_available_but_templates_are_missing(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot(['.github']));
+
+        $this->assertEquals('improvement', collect($findings)->firstWhere('ruleIdentifier', 'COMM-ISSUE-001')->status);
+        $this->assertEquals('improvement', collect($findings)->firstWhere('ruleIdentifier', 'COMM-BUG-001')->status);
+        $this->assertEquals('improvement', collect($findings)->firstWhere('ruleIdentifier', 'COMM-FEATURE-001')->status);
+        $this->assertEquals('improvement', collect($findings)->firstWhere('ruleIdentifier', 'COMM-PR-001')->status);
+    }
+
+    public function test_it_returns_unknown_for_github_templates_if_github_is_unavailable(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot([], ['.github']));
+
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'COMM-ISSUE-001')->status);
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'COMM-BUG-001')->status);
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'COMM-FEATURE-001')->status);
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'COMM-PR-001')->status);
+    }
+
     public function test_it_detects_source_organization(): void
     {
         $service = new DeterministicRepositoryAnalysisService;

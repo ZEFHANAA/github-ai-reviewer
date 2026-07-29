@@ -26,7 +26,10 @@ class GitHubRepositorySnapshotTest extends TestCase
                 ['path' => '.github'], ['path' => 'docs'], ['path' => 'src'],
             ]),
             'api.github.com/repos/laravel/laravel/contents/.github*' => Http::response([
-                ['path' => '.github/workflows'],
+                ['path' => '.github/ISSUE_TEMPLATE'],
+            ]),
+            'api.github.com/repos/laravel/laravel/contents/.github/ISSUE_TEMPLATE*' => Http::response([
+                ['path' => '.github/ISSUE_TEMPLATE/bug_report.md'],
             ]),
             'api.github.com/repos/laravel/laravel/contents/.github/workflows*' => Http::response([
                 ['path' => '.github/workflows/ci.yml'],
