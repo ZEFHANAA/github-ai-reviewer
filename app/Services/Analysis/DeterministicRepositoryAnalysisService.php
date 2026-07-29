@@ -17,6 +17,16 @@ class DeterministicRepositoryAnalysisService
         $hasContributing = $this->matchAnyPath($s, ['contributing', 'contributing.md', '.github/contributing.md', 'docs/contributing.md']);
         $contributing = $hasContributing ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
 
+        // Rule D: Community & governance
+        $hasSecurity = $this->matchAnyPath($s, ['security', 'security.md', '.github/security.md', 'docs/security.md']);
+        $security = $hasSecurity ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
+
+        $hasConduct = $this->matchAnyPath($s, ['code_of_conduct', 'code_of_conduct.md', '.github/code_of_conduct.md', 'docs/code_of_conduct.md']);
+        $conduct = $hasConduct ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
+
+        $hasChangelog = $this->matchAnyPath($s, ['changelog', 'changelog.md', '.github/changelog.md', 'docs/changelog.md', 'releases']);
+        $changelog = $hasChangelog ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
+
         // Rule A: Test detection
         $hasTests = $this->matchAnyPath($s, ['tests', 'test', 'spec', 'specs', '__tests__']);
         // Rule A Requirement: "Do not assume that missing test signals prove that the project has no tests." -> return unknown (null)
@@ -40,9 +50,12 @@ class DeterministicRepositoryAnalysisService
             $this->check('DOC-README-001', 'Documentation', $readme, 'README', 'README documentation was detected.', 'README not detected. This is an improvement opportunity, not proof that documentation is absent elsewhere.', 'Add a README explaining setup and usage.'),
             $this->check('DOC-LICENSE-001', 'Documentation', $license, 'License', 'A license file was detected.', 'License not detected.', 'Add an appropriate license file.'),
             $this->check('DOC-CONTRIBUTING-001', 'Documentation', $contributing, 'Contribution guidance', 'Contribution guidance was detected.', 'Contribution guidance not detected.', 'Consider adding CONTRIBUTING.md.'),
+            $this->check('DOC-CONDUCT-001', 'Documentation', $conduct, 'Code of conduct', 'Code of conduct was detected.', 'Code of conduct not detected.', 'Consider adding CODE_OF_CONDUCT.md.'),
+            $this->check('DOC-CHANGELOG-001', 'Documentation', $changelog, 'Changelog', 'Changelog documentation was detected.', 'Changelog not detected.', 'Consider maintaining a CHANGELOG.md.'),
             $this->check('TEST-DIRECTORY-001', 'Testing', $tests, 'Test files', 'Recognizable test paths were detected.', 'Recognizable test paths were not detected. This does not measure coverage or test quality.', 'Add automated tests in a conventional directory.'),
             $this->check('TEST-CONFIG-001', 'Testing', $testConfig, 'Test configuration', 'A recognizable test configuration file was detected.', 'A recognizable test configuration file was not detected.', 'Add or document the test runner configuration.'),
             new AnalysisFinding('SEC-ENV-001', 'Security hygiene', $env ? 'warning' : 'pass', 'Environment file naming', $env ? 'A committed environment file name was detected. This is a potential hygiene risk, not proof that secrets are present.' : 'No obvious committed environment file name was detected.', $env ?: null, $env ? 'Review the file, remove any secrets, and rotate credentials if exposure is confirmed.' : null),
+            $this->check('SEC-POLICY-001', 'Security hygiene', $security, 'Security policy', 'Security policy was detected.', 'Security policy (SECURITY.md) was not detected.', 'Consider adding a SECURITY.md to document security vulnerability reporting procedures.'),
             $this->check('SEC-DEPENDABOT-001', 'Security hygiene', $dependabot, 'Dependency update automation', 'Dependabot configuration was detected.', 'Dependabot configuration was not detected.', 'Consider dependency update automation.'),
             $this->check('STRUCT-DEPS-001', 'Project structure', $manifest, 'Dependency manifest', 'A common dependency manifest was detected.', 'A common dependency manifest was not detected.', 'Add the dependency manifest where applicable.'),
             $this->check('STRUCT-SOURCE-001', 'Project structure', $source, 'Source organization', 'A recognizable source directory was detected.', 'A recognizable source directory was not detected. Framework conventions may differ.', 'Use or document the source layout.'),

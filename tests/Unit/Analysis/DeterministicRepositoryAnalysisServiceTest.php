@@ -47,6 +47,44 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
         $this->assertEquals('unknown', collect($service->analyze($this->snapshot([], ['docs'])))->firstWhere('ruleIdentifier', 'DOC-CONTRIBUTING-001')->status);
     }
 
+    public function test_it_detects_community_and_governance_files(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot([
+            'SECURITY.md',
+            'CODE_OF_CONDUCT.md',
+            'CHANGELOG.md',
+        ]));
+
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'SEC-POLICY-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CONDUCT-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CHANGELOG-001')->status);
+    }
+
+    public function test_it_detects_community_files_in_standard_subdirectories(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot([
+            '.github/SECURITY.md',
+            'docs/CODE_OF_CONDUCT.md',
+            'docs/CHANGELOG.md',
+        ]));
+
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'SEC-POLICY-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CONDUCT-001')->status);
+        $this->assertEquals('pass', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CHANGELOG-001')->status);
+    }
+
+    public function test_it_returns_unknown_for_community_files_if_standard_directories_are_unavailable(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $findings = $service->analyze($this->snapshot([], ['.github', 'docs']));
+
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'SEC-POLICY-001')->status);
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CONDUCT-001')->status);
+        $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'DOC-CHANGELOG-001')->status);
+    }
+
     public function test_it_detects_source_organization(): void
     {
         $service = new DeterministicRepositoryAnalysisService;
