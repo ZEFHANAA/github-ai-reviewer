@@ -41,8 +41,39 @@
             </article>
         </div>
 
-        <div class="mt-14 rounded-2xl border border-indigo-300/15 bg-indigo-400/10 p-6 text-sm leading-6 text-indigo-100 sm:p-8">
-            Repository analysis will be introduced in the next development phase. This landing page is intentionally informational for now.
+        <div class="mt-14 max-w-3xl rounded-2xl border border-indigo-300/15 bg-indigo-400/10 p-6 sm:p-8">
+            <h2 class="text-xl font-semibold text-white">Start with a public GitHub repository</h2>
+            <p class="mt-2 text-sm leading-6 text-indigo-100">Enter a canonical repository page URL. We will validate it before repository analysis is available.</p>
+
+            <form action="{{ route('repositories.submit') }}" method="POST" class="mt-6">
+                @csrf
+
+                <label for="repository_url" class="text-sm font-medium text-white">GitHub repository URL</label>
+                <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                    <input
+                        id="repository_url"
+                        name="repository_url"
+                        type="url"
+                        value="{{ old('repository_url') }}"
+                        placeholder="https://github.com/laravel/laravel"
+                        autocomplete="url"
+                        required
+                        aria-describedby="repository_url_help @error('repository_url') repository_url_error @enderror"
+                        @class([
+                            'min-w-0 flex-1 rounded-lg border bg-slate-950/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:ring-2',
+                            'border-rose-400 focus:border-rose-400 focus:ring-rose-400/30' => $errors->has('repository_url'),
+                            'border-white/15 focus:border-indigo-400 focus:ring-indigo-400/30' => ! $errors->has('repository_url'),
+                        ])
+                    >
+                    <button type="submit" class="inline-flex justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-white/60">
+                        Analyze Repository
+                    </button>
+                </div>
+                <p id="repository_url_help" class="mt-2 text-sm text-indigo-100/80">Example: https://github.com/laravel/laravel</p>
+                @error('repository_url')
+                    <p id="repository_url_error" class="mt-2 text-sm font-medium text-rose-200">{{ $message }}</p>
+                @enderror
+            </form>
         </div>
     </section>
 @endsection

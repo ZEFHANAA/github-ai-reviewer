@@ -118,6 +118,7 @@ Detailed engineering documentation is available in [`docs/`](docs/):
   -------------------------------------- -------------
   Planning & Engineering Documentation   Completed
   Project Foundation                     Completed
+  Repository Input & URL Validation      Completed
   GitHub Integration                     Planned
   Repository Analysis Engine             Planned
   Scoring Engine                         Planned

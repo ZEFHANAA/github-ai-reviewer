@@ -19,6 +19,7 @@ class ExampleTest extends TestCase
             ->assertSee('GitHub AI Reviewer')
             ->assertSee('Repository health, made clear.')
             ->assertSee('Currently in development')
-            ->assertDontSee('Analyze a repository');
+            ->assertSee('Analyze Repository')
+            ->assertSee('https://github.com/laravel/laravel');
     }
 }
