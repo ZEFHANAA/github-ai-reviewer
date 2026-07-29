@@ -59,5 +59,30 @@
                 @endforelse
             </div>
         </div>
+
+        <section class="mt-12">
+            <p class="text-sm font-semibold text-indigo-200">Deterministic checks</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">Repository checks</h2>
+            <p class="mt-2 text-sm text-slate-400">These are file and configuration signals only. No numeric score or source-code execution is used.</p>
+            @php($groupedFindings = collect($findings)->groupBy('category'))
+            <div class="mt-6 grid gap-6 lg:grid-cols-2">
+                @foreach ($groupedFindings as $category => $categoryFindings)
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+                        <h3 class="font-semibold text-white">{{ $category }}</h3>
+                        <div class="mt-4 space-y-4">
+                            @foreach ($categoryFindings as $finding)
+                                <article class="border-l-2 pl-4 {{ $finding->status === 'warning' ? 'border-amber-300' : ($finding->status === 'pass' ? 'border-emerald-300' : 'border-indigo-300') }}">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $finding->status }}</p>
+                                    <h4 class="mt-1 font-medium text-white">{{ $finding->title }}</h4>
+                                    <p class="mt-1 text-sm leading-6 text-slate-300">{{ $finding->message }}</p>
+                                    @if ($finding->evidence)<p class="mt-2 text-xs text-slate-400">Evidence: {{ $finding->evidence }}</p>@endif
+                                    @if ($finding->recommendation)<p class="mt-2 text-xs text-indigo-200">Recommendation: {{ $finding->recommendation }}</p>@endif
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
     </section>
 @endsection

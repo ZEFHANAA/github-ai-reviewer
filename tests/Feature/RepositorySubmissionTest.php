@@ -11,6 +11,18 @@ class RepositorySubmissionTest extends TestCase
     {
         Http::fake([
             'api.github.com/repos/laravel/laravel' => Http::response($this->repositoryPayload()),
+            'api.github.com/repos/laravel/laravel/contents/' => Http::response([
+                ['path' => 'README.md'], ['path' => 'LICENSE'], ['path' => '.gitignore'], ['path' => 'composer.json'], ['path' => 'app'], ['path' => 'tests'], ['path' => '.github'],
+            ]),
+            'api.github.com/repos/laravel/laravel/contents/.github' => Http::response([
+                ['path' => '.github/workflows'], ['path' => '.github/dependabot.yml'],
+            ]),
+            'api.github.com/repos/laravel/laravel/contents/.github/workflows' => Http::response([
+                ['path' => '.github/workflows/tests.yml'],
+            ]),
+            'api.github.com/repos/laravel/laravel/contents*' => Http::response([
+                ['path' => 'README.md'], ['path' => 'LICENSE'], ['path' => '.gitignore'], ['path' => 'composer.json'], ['path' => 'app'], ['path' => 'tests'],
+            ]),
         ]);
 
         $response = $this->post(route('repositories.submit'), [
@@ -23,7 +35,9 @@ class RepositorySubmissionTest extends TestCase
             ->assertSee('laravel/laravel')
             ->assertSee('https://github.com/laravel/laravel')
             ->assertSee('Laravel is a web application framework.')
-            ->assertSee('MIT License');
+            ->assertSee('MIT License')
+            ->assertSee('Repository checks')
+            ->assertSee('Deterministic checks');
     }
 
     public function test_invalid_repository_submission_redirects_back_with_the_input_and_error(): void
