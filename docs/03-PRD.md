@@ -245,7 +245,8 @@ to an external AI provider.
 
 -   Backend: Laravel / PHP
 -   Frontend: Blade + Tailwind CSS
--   Database: MySQL
+-   Database: SQLite for local development; production database TBD based
+    on deployment requirements
 -   Repository Provider: GitHub REST API
 -   AI: Provider abstraction using an API-based LLM
 

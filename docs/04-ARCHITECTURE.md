@@ -31,7 +31,8 @@ Laravel Web Application
     +--> AI Review Service
     |       +--> AI Provider API
     |
-    +--> MySQL
+    +--> SQLite (local development)
+    |    Production database: TBD
     |
     v
 Analysis Report

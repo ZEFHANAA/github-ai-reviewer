@@ -63,8 +63,8 @@ quality.
   AI Integration           API-based LLM with provider abstraction
   Version Control          Git + GitHub
 
-The production database and AI provider will be finalized before
-deployment.
+SQLite is used for local development. The production database and AI
+provider will be selected later based on deployment requirements.
 
 ## High-Level Architecture
 
@@ -117,7 +117,7 @@ Detailed engineering documentation is available in [`docs/`](docs/):
   Phase                                  Status
   -------------------------------------- -------------
   Planning & Engineering Documentation   Completed
-  Project Foundation                     In Progress
+  Project Foundation                     Completed
   GitHub Integration                     Planned
   Repository Analysis Engine             Planned
   Scoring Engine                         Planned

@@ -207,7 +207,8 @@ The MVP is technically feasible using:
 -   Laravel
 -   PHP
 -   GitHub REST API
--   MySQL
+-   SQLite for local development
+-   A production database selected later based on deployment requirements
 -   Blade/Tailwind
 -   An external AI API
 

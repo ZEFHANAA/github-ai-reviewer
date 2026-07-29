@@ -29,7 +29,8 @@ Tasks:
 -   Initialize Laravel project
 -   Initialize Git repository
 -   Configure environment
--   Configure MySQL
+-   Configure SQLite for local development
+-   Document production database as TBD pending deployment requirements
 -   Configure Blade/Tailwind
 -   Establish base layout
 -   Add project documentation
