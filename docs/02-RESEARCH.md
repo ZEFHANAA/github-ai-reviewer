@@ -41,6 +41,9 @@ Benefits:
 Authenticated GitHub API requests using a server-side token may still be
 used to obtain more practical API limits.
 
+The optional server-side configuration key is `GITHUB_TOKEN`. It must
+never be exposed to the browser or committed to source control.
+
 GitHub credentials must never be exposed to the browser.
 
 ## 4. API Rate Limits

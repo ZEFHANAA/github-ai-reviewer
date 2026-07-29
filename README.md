@@ -119,7 +119,7 @@ Detailed engineering documentation is available in [`docs/`](docs/):
   Planning & Engineering Documentation   Completed
   Project Foundation                     Completed
   Repository Input & URL Validation      Completed
-  GitHub Integration                     Planned
+  GitHub Integration                     Completed
   Repository Analysis Engine             Planned
   Scoring Engine                         Planned
   AI Review                              Planned
@@ -181,6 +181,13 @@ php artisan serve
 
 Environment configuration and complete setup instructions will be
 documented before the first public release.
+
+### Optional GitHub API token
+
+The application can retrieve public repository metadata without a token,
+subject to GitHub's unauthenticated API rate limits. To use a higher
+server-side rate limit, set `GITHUB_TOKEN` in your local environment.
+Never expose this token to the browser or commit it to source control.
 
 ## Roadmap
 
