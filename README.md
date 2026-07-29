@@ -1,58 +1,204 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GitHub AI Reviewer
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> AI-assisted GitHub repository health analyzer built with Laravel.
 
-## About Laravel
+[![Laravel](https://img.shields.io/badge/Laravel-13.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Status](https://img.shields.io/badge/status-in%20development-yellow)](#project-status)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+GitHub AI Reviewer is a web application that analyzes public GitHub
+repositories and produces an explainable repository health report.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The application combines deterministic, rule-based checks with
+AI-assisted review. Objective repository characteristics are evaluated
+by the application's analysis engine, while AI is used primarily to
+explain findings and provide actionable recommendations.
 
-## Learning Laravel
+The project is currently under active development.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Planned MVP Features
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+-   Analyze public GitHub repositories from a repository URL
+-   Retrieve repository metadata through the GitHub REST API
+-   Analyze documentation quality
+-   Detect testing-related indicators
+-   Evaluate project structure
+-   Perform basic repository security hygiene checks
+-   Evaluate Git practices
+-   Perform basic code-quality analysis
+-   Generate explainable category scores
+-   Generate an overall repository health score
+-   Provide AI-assisted findings and recommendations
+-   Store analysis history
+-   Display findings by severity and source
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Repository Health Categories
 
-## Agentic Development
+The MVP evaluates six categories:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+  Category              Weight
+  ------------------- --------
+  Documentation            20%
+  Testing                  20%
+  Security                 20%
+  Project Structure        15%
+  Code Quality             15%
+  Git Practices            10%
 
-```bash
-composer require laravel/boost --dev
+The scoring model is intended as an explainable repository-health
+heuristic, not an absolute measurement of developer ability or software
+quality.
 
-php artisan boost:install
+## Tech Stack
+
+  Component                Technology
+  ------------------------ -----------------------------------------
+  Backend                  Laravel 13
+  Language                 PHP 8.3+
+  Frontend                 Blade + Tailwind CSS
+  Development Database     SQLite
+  Repository Integration   GitHub REST API
+  AI Integration           API-based LLM with provider abstraction
+  Version Control          Git + GitHub
+
+The production database and AI provider will be finalized before
+deployment.
+
+## High-Level Architecture
+
+``` text
+User
+  |
+  v
+Laravel Application
+  |
+  +---- GitHub REST API
+  |
+  +---- Repository Analysis Engine
+  |       |
+  |       +---- Documentation Analyzer
+  |       +---- Testing Analyzer
+  |       +---- Security Analyzer
+  |       +---- Project Structure Analyzer
+  |       +---- Code Quality Analyzer
+  |       +---- Git Practices Analyzer
+  |
+  +---- Scoring Engine
+  |
+  +---- AI Review Service
+  |
+  +---- Database
+  |
+  v
+Repository Health Report
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The MVP is designed as a modular Laravel monolith. More complex
+infrastructure such as Redis, queues, dedicated workers, or separate
+analysis services will only be introduced when justified by application
+requirements.
 
-## Contributing
+## Documentation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Detailed engineering documentation is available in [`docs/`](docs/):
 
-## Code of Conduct
+-   [Problem Definition](docs/01-PROBLEM.md)
+-   [Research & Feasibility](docs/02-RESEARCH.md)
+-   [Product Requirements Document](docs/03-PRD.md)
+-   [System Architecture](docs/04-ARCHITECTURE.md)
+-   [Database Design](docs/05-DATABASE.md)
+-   [Scoring Specification](docs/06-SCORING.md)
+-   [Development Roadmap](docs/07-ROADMAP.md)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Project Status
 
-## Security Vulnerabilities
+  Phase                                  Status
+  -------------------------------------- -------------
+  Planning & Engineering Documentation   Completed
+  Project Foundation                     In Progress
+  GitHub Integration                     Planned
+  Repository Analysis Engine             Planned
+  Scoring Engine                         Planned
+  AI Review                              Planned
+  Report UI                              Planned
+  Testing & Hardening                    Planned
+  Public Deployment                      Planned
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## MVP Scope
+
+Version 1 focuses on analyzing **public GitHub repositories**.
+
+The following features are intentionally outside the initial MVP:
+
+-   Private repository analysis
+-   GitHub OAuth
+-   Pull Request review
+-   Automatic code modification
+-   Automatic Pull Request creation
+-   Team collaboration
+-   Organization-wide monitoring
+-   IDE extensions
+
+These capabilities may be considered in later versions.
+
+## Security and AI Disclaimer
+
+GitHub AI Reviewer is intended to provide repository-health guidance.
+
+Security-related findings may indicate potential issues but **must not
+be treated as a professional security audit or proof of a
+vulnerability**.
+
+AI-generated observations are probabilistic and will be distinguished
+from deterministic findings wherever possible.
+
+Repository content is treated as untrusted input and should never be
+interpreted as instructions by the AI analysis pipeline.
+
+## Local Development
+
+The project is currently under development. Complete installation
+instructions will be added as the application foundation stabilizes.
+
+Current requirements include:
+
+-   PHP 8.3+
+-   Composer
+-   Node.js
+-   npm
+-   SQLite
+
+For the current Laravel development server:
+
+``` bash
+composer install
+npm install
+php artisan serve
+```
+
+Environment configuration and complete setup instructions will be
+documented before the first public release.
+
+## Roadmap
+
+Development is organized into the following stages:
+
+1.  Project foundation
+2.  Repository input and URL validation
+3.  GitHub REST API integration
+4.  Deterministic repository analysis
+5.  Explainable scoring engine
+6.  Analysis persistence
+7.  AI-assisted review
+8.  Repository report interface
+9.  Testing and security hardening
+10. Portfolio preparation
+11. Public deployment
+
+See the full [Development Roadmap](docs/07-ROADMAP.md) for details.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+A project license will be selected before the first public release.
