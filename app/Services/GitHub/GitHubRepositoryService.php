@@ -17,7 +17,15 @@ use InvalidArgumentException;
 
 class GitHubRepositoryService
 {
-    private const MAX_DIRECTORY_ENTRIES = 200;
+    /**
+     * Maximum Contents API requests allowed during a single snapshot collection
+     * (1 request for root listing + up to 3 requests for subdirectories like .github, .github/workflows, docs).
+     * Note: Metadata API endpoint (/repos/{owner}/{repo}) is separate and not counted in this limit.
+     */
+    public const MAX_CONTENT_REQUESTS = 4;
+
+    /** Maximum entries accepted from any one directory listing. */
+    public const MAX_DIRECTORY_ENTRIES = 200;
 
     public function fetchMetadata(GitHubRepositoryUrl $repository): GitHubRepositoryMetadata
     {
@@ -46,16 +54,29 @@ class GitHubRepositoryService
     {
         $paths = $this->contents($repository, '', $metadata->defaultBranch);
         $unavailable = [];
+        $requests = 1;
 
-        if (in_array('.github', $paths, true)) {
+        if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github', $paths, true)) {
             try {
                 $githubPaths = $this->contents($repository, '.github', $metadata->defaultBranch);
                 $paths = [...$paths, ...$githubPaths];
-                if (in_array('.github/workflows', $githubPaths, true)) {
+                $requests++;
+
+                if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github/workflows', $githubPaths, true)) {
                     $paths = [...$paths, ...$this->contents($repository, '.github/workflows', $metadata->defaultBranch)];
+                    $requests++;
                 }
             } catch (\Throwable) {
                 $unavailable[] = '.github';
+            }
+        }
+
+        if ($requests < self::MAX_CONTENT_REQUESTS && in_array('docs', $paths, true)) {
+            try {
+                $paths = [...$paths, ...$this->contents($repository, 'docs', $metadata->defaultBranch)];
+                $requests++;
+            } catch (\Throwable) {
+                $unavailable[] = 'docs';
             }
         }
 

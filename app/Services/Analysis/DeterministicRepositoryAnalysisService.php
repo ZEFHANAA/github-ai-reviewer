@@ -12,13 +12,26 @@ class DeterministicRepositoryAnalysisService
     {
         $readme = $s->starts('readme');
         $license = $s->starts('license');
-        $contributing = $s->starts('contributing');
-        $tests = $s->starts('tests/') || $s->starts('test/') || $s->starts('spec/') || $s->starts('__tests__/');
+
+        // Rule B: Contribution guidance
+        $hasContributing = $this->matchAnyPath($s, ['contributing', 'contributing.md', '.github/contributing.md', 'docs/contributing.md']);
+        $contributing = $hasContributing ? true : ($this->isUnavailable($s, '.github') || $this->isUnavailable($s, 'docs') ? null : false);
+
+        // Rule A: Test detection
+        $hasTests = $this->matchAnyPath($s, ['tests', 'test', 'spec', 'specs', '__tests__']);
+        // Rule A Requirement: "Do not assume that missing test signals prove that the project has no tests." -> return unknown (null)
+        $tests = $hasTests ? true : null;
+
         $testConfig = $s->has('phpunit.xml') || $s->has('pest.php') || $s->has('jest.config.js') || $s->has('vitest.config.js') || $s->has('pytest.ini');
+
         $env = collect($s->paths)->first(fn ($p) => preg_match('#(^|/)\\.env(?:\\..+)?$#i', $p) && ! str_ends_with(strtolower($p), '.example'));
         $dependabot = $s->has('.github/dependabot.yml') || $s->has('.github/dependabot.yaml');
         $manifest = collect(['composer.json', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'cargo.toml'])->contains(fn ($p) => $s->has($p));
-        $source = $s->starts('app/') || $s->starts('src/') || $s->starts('lib/');
+
+        // Rule C: Source organization
+        $hasSource = $this->matchAnyPath($s, ['app', 'src', 'lib']);
+        $source = $hasSource ? true : null;
+
         $ci = $s->starts('.github/workflows/');
         $ignore = $s->has('.gitignore');
         $editor = $s->has('.editorconfig');
@@ -39,8 +52,59 @@ class DeterministicRepositoryAnalysisService
         ];
     }
 
-    private function check(string $rule, string $category, bool $pass, string $title, string $yes, string $no, string $recommendation): AnalysisFinding
+    private function check(string $rule, string $category, ?bool $pass, string $title, string $yes, string $no, string $recommendation): AnalysisFinding
     {
-        return new AnalysisFinding($rule, $category, $pass ? 'pass' : 'improvement', $title, $pass ? $yes : $no, null, $pass ? null : $recommendation);
+        $status = $pass === null ? 'unknown' : ($pass ? 'pass' : 'improvement');
+
+        return new AnalysisFinding(
+            $rule,
+            $category,
+            $status,
+            $title,
+            $pass === true ? $yes : ($pass === false ? $no : 'Data required for this check was not detected or was unavailable.'),
+            null,
+            $pass === true ? null : $recommendation,
+        );
+    }
+
+    /**
+     * Check if a path matches any of the given patterns as a top-level directory or file.
+     * Patterns without slash are matched as exact path. Patterns with slash are matched as prefix.
+     *
+     * @param  list<string>  $patterns
+     */
+    private function matchAnyPath(RepositorySnapshot $s, array $patterns): bool
+    {
+        $paths = array_map(strtolower(...), $s->paths);
+
+        foreach ($patterns as $pattern) {
+            $pattern = strtolower($pattern);
+            if (str_contains($pattern, '/')) {
+                foreach ($paths as $path) {
+                    if (str_starts_with($path, $pattern.'/') || $path === $pattern) {
+                        return true;
+                    }
+                }
+            } else {
+                foreach ($paths as $path) {
+                    if ($path === $pattern || str_starts_with($path, $pattern.'/')) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isUnavailable(RepositorySnapshot $s, string $key): bool
+    {
+        foreach ($s->unavailableData as $item) {
+            if (str_starts_with($item, $key) || $item === $key) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
