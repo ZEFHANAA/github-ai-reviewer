@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Analysis\FinalScoreCalculator;
 use App\Http\Requests\SubmitRepositoryRequest;
 use App\Services\Analysis\DeterministicRepositoryAnalysisService;
 use App\Services\GitHub\Exceptions\GitHubRepositoryException;
@@ -11,7 +12,7 @@ use Illuminate\View\View;
 
 class RepositorySubmissionController extends Controller
 {
-    public function store(SubmitRepositoryRequest $request, GitHubRepositoryService $github, DeterministicRepositoryAnalysisService $analysis, \App\Analysis\FinalScoreCalculator $calculator): View|Response
+    public function store(SubmitRepositoryRequest $request, GitHubRepositoryService $github, DeterministicRepositoryAnalysisService $analysis, FinalScoreCalculator $calculator): View|Response
     {
         try {
             $repository = $github->fetchMetadata($request->repository());
