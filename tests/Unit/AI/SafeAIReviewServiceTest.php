@@ -96,6 +96,27 @@ class SafeAIReviewServiceTest extends TestCase
         $this->assertSame('AI review is temporarily unavailable.', $unavailable->failureReason);
     }
 
+    public function test_outcome_exposes_view_data_without_provider_logic_in_the_view(): void
+    {
+        $response = new AIReviewResponse('Summary.', ['Docs.'], ['Maintainable.'], ['Concern.'], ['Recommendation.']);
+
+        $available = AIReviewOutcome::available($response);
+        $unavailable = AIReviewOutcome::unavailable();
+
+        $this->assertSame('AI-assisted qualitative review', $available->sourceLabel);
+        $this->assertNull($available->notice);
+        $this->assertSame([
+            ['title' => 'Repository Summary', 'entries' => ['Summary.']],
+            ['title' => 'Documentation Observations', 'entries' => ['Docs.']],
+            ['title' => 'Maintainability Observations', 'entries' => ['Maintainable.']],
+            ['title' => 'Potential Concerns', 'entries' => ['Concern.']],
+            ['title' => 'Prioritized Recommendations', 'entries' => ['Recommendation.']],
+        ], $available->sections);
+        $this->assertSame('AI enrichment unavailable', $unavailable->sourceLabel);
+        $this->assertSame('AI review is temporarily unavailable.', $unavailable->notice);
+        $this->assertSame([], $unavailable->sections);
+    }
+
     private function safe(AIReviewProviderInterface $provider, ?RecordingLogger $logger = null): SafeAIReviewService
     {
         return new SafeAIReviewService(

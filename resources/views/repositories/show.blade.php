@@ -146,5 +146,28 @@
                 @endforeach
             </div>
         </section>
+
+        <section class="mt-12">
+            <div class="flex items-center gap-3">
+                <p class="text-sm font-semibold text-indigo-200">{{ $aiReview->sourceLabel }}</p>
+                @if ($aiReview->notice)
+                    <span class="rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-200">{{ $aiReview->notice }}</span>
+                @endif
+            </div>
+            <h2 class="mt-2 text-2xl font-semibold text-white">Qualitative review</h2>
+            <p class="mt-2 text-sm text-slate-400">Optional AI enrichment. Deterministic scores and findings above remain authoritative and unchanged.</p>
+            <div class="mt-6 grid gap-6 lg:grid-cols-2">
+                @foreach ($aiReview->sections as $section)
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+                        <h3 class="font-semibold text-white">{{ $section['title'] }}</h3>
+                        <ul class="mt-3 space-y-3">
+                            @foreach ($section['entries'] as $entry)
+                                <li class="text-sm leading-6 text-slate-300">{{ $entry }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+        </section>
     </section>
 @endsection

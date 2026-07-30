@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\AI\AIReviewRequest;
+use App\AI\AIReviewResponse;
+use App\Contracts\AIReviewProviderInterface;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -78,5 +82,75 @@ class RepositorySubmissionTest extends TestCase
         $contents = file_get_contents(base_path('tests/Fixtures/github-repository.json'));
 
         return json_decode($contents ?: '', true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    public function test_the_report_displays_ai_enrichment_when_the_provider_succeeds(): void
+    {
+        $this->fakeGitHub();
+        $this->swap(AIReviewProviderInterface::class, new class implements AIReviewProviderInterface
+        {
+            public function review(AIReviewRequest $request): AIReviewResponse
+            {
+                return new AIReviewResponse(
+                    'A mature framework skeleton with strong documentation.',
+                    ['The README explains installation clearly.'],
+                    ['Tests directory is present and organised.'],
+                    ['Dependency updates are not automated.'],
+                    ['Enable Dependabot for dependency updates.'],
+                );
+            }
+        });
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('AI-assisted qualitative review')
+            ->assertSee('A mature framework skeleton with strong documentation.')
+            ->assertSee('The README explains installation clearly.')
+            ->assertSee('Tests directory is present and organised.')
+            ->assertSee('Dependency updates are not automated.')
+            ->assertSee('Enable Dependabot for dependency updates.')
+            ->assertSee('Overall Repository Health Score')
+            ->assertDontSee('AI review is temporarily unavailable.');
+    }
+
+    public function test_an_ai_provider_failure_keeps_the_deterministic_report_intact(): void
+    {
+        $this->fakeGitHub();
+        $this->swap(AIReviewProviderInterface::class, new class implements AIReviewProviderInterface
+        {
+            public function review(AIReviewRequest $request): AIReviewResponse
+            {
+                throw new Exception('provider offline');
+            }
+        });
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('AI review is temporarily unavailable.')
+            ->assertSee('Overall Repository Health Score')
+            ->assertSee('Category Scores')
+            ->assertSee('Repository checks')
+            ->assertSee('laravel/laravel');
+    }
+
+    private function fakeGitHub(): void
+    {
+        Http::fake([
+            'api.github.com/repos/laravel/laravel' => Http::response($this->repositoryPayload()),
+            'api.github.com/repos/laravel/laravel/contents/' => Http::response([
+                ['path' => 'README.md'], ['path' => 'LICENSE'], ['path' => '.gitignore'], ['path' => 'composer.json'], ['path' => 'app'], ['path' => 'tests'],
+            ]),
+            'api.github.com/repos/laravel/laravel/contents*' => Http::response([
+                ['path' => 'README.md'], ['path' => 'LICENSE'], ['path' => '.gitignore'], ['path' => 'composer.json'], ['path' => 'app'], ['path' => 'tests'],
+            ]),
+        ]);
     }
 }

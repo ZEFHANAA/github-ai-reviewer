@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Analysis\FinalScoreCalculator;
 use App\Http\Requests\SubmitRepositoryRequest;
+use App\Services\AI\SafeAIReviewService;
 use App\Services\Analysis\DeterministicRepositoryAnalysisService;
 use App\Services\GitHub\Exceptions\GitHubRepositoryException;
 use App\Services\GitHub\GitHubRepositoryService;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class RepositorySubmissionController extends Controller
 {
-    public function store(SubmitRepositoryRequest $request, GitHubRepositoryService $github, DeterministicRepositoryAnalysisService $analysis, FinalScoreCalculator $calculator): View|Response
+    public function store(SubmitRepositoryRequest $request, GitHubRepositoryService $github, DeterministicRepositoryAnalysisService $analysis, FinalScoreCalculator $calculator, SafeAIReviewService $ai): View|Response
     {
         try {
             $repository = $github->fetchMetadata($request->repository());
@@ -23,6 +24,8 @@ class RepositorySubmissionController extends Controller
                 'repository' => $repository,
                 'findings' => $findings,
                 'report' => $report,
+                // Deterministic results above are already final; AI is optional enrichment.
+                'aiReview' => $ai->review($repository, $report),
             ]);
         } catch (GitHubRepositoryException $exception) {
             return response()->view('repositories.error', [
