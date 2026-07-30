@@ -6,6 +6,12 @@ return [
         'token' => env('GITHUB_TOKEN'),
     ],
 
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'fake'),
+        'model' => env('AI_MODEL'),
+        'key' => env('AI_API_KEY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
