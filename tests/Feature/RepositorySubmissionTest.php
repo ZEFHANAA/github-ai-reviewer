@@ -36,6 +36,8 @@ class RepositorySubmissionTest extends TestCase
             ->assertSee('https://github.com/laravel/laravel')
             ->assertSee('Laravel is a web application framework.')
             ->assertSee('MIT License')
+            ->assertSee('Overall Repository Health Score')
+            ->assertSee('Category Scores')
             ->assertSee('Repository checks')
             ->assertSee('Deterministic checks');
     }

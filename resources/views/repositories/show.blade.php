@@ -19,6 +19,68 @@
             </div>
         </div>
 
+        <div class="mt-8 rounded-2xl border border-indigo-400/20 bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-slate-950/80 p-6 sm:p-8 backdrop-blur-sm">
+            <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="text-sm font-medium uppercase tracking-wider text-indigo-300">Overall Repository Health Score</p>
+                    <div class="mt-2 flex items-baseline gap-3">
+                        <span class="text-5xl font-extrabold text-white sm:text-6xl">{{ $report->finalScore }}</span>
+                        <span class="text-xl text-slate-400 font-medium">/ 100</span>
+                        @php
+                            $score = $report->finalScore;
+                            $label = match(true) {
+                                $score >= 90 => 'Excellent',
+                                $score >= 80 => 'Good',
+                                $score >= 70 => 'Fair',
+                                $score >= 60 => 'Needs Improvement',
+                                default => 'Poor',
+                            };
+                            $badgeColor = match(true) {
+                                $score >= 80 => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
+                                $score >= 60 => 'bg-amber-400/15 text-amber-300 border-amber-400/30',
+                                default => 'bg-rose-400/15 text-rose-300 border-rose-400/30',
+                            };
+                        @endphp
+                        <span class="ml-2 inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold {{ $badgeColor }}">
+                            {{ $label }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-4 text-sm text-slate-300">
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                        <span class="block text-xl font-bold text-emerald-400">{{ $report->summary['pass'] ?? 0 }}</span>
+                        <span class="text-xs text-slate-400">Passed</span>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                        <span class="block text-xl font-bold text-amber-400">{{ $report->summary['improvement'] ?? 0 }}</span>
+                        <span class="text-xs text-slate-400">Improvements</span>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                        <span class="block text-xl font-bold text-indigo-300">{{ $report->summary['unknown'] ?? 0 }}</span>
+                        <span class="text-xs text-slate-400">Unknown</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t border-white/10 pt-6">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-200">Category Scores</h3>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($report->categoryScores as $categoryName => $catScore)
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+                            <div class="flex items-center justify-between text-sm font-medium">
+                                <span class="text-white">{{ $categoryName }}</span>
+                                <span class="font-bold text-indigo-200">{{ $catScore }}%</span>
+                            </div>
+                            <div class="mt-2 h-2.5 w-full rounded-full bg-slate-800">
+                                <div class="h-2.5 rounded-full {{ $catScore >= 80 ? 'bg-emerald-400' : ($catScore >= 60 ? 'bg-amber-400' : 'bg-rose-400') }}" style="width: {{ max($catScore, 4) }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
         <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <x-repositories.stat label="Stars" :value="number_format($repository->starsCount)" />
             <x-repositories.stat label="Forks" :value="number_format($repository->forksCount)" />
@@ -71,8 +133,8 @@
                         <h3 class="font-semibold text-white">{{ $category }}</h3>
                         <div class="mt-4 space-y-4">
                             @foreach ($categoryFindings as $finding)
-                                <article class="border-l-2 pl-4 {{ $finding->status === 'warning' ? 'border-amber-300' : ($finding->status === 'pass' ? 'border-emerald-300' : 'border-indigo-300') }}">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $finding->status }}</p>
+                                <article class="border-l-2 pl-4 {{ $finding->status->value === 'warning' || $finding->status->value === 'improvement' ? 'border-amber-300' : ($finding->status->value === 'pass' ? 'border-emerald-300' : 'border-indigo-300') }}">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $finding->status->value }}</p>
                                     <h4 class="mt-1 font-medium text-white">{{ $finding->title }}</h4>
                                     <p class="mt-1 text-sm leading-6 text-slate-300">{{ $finding->message }}</p>
                                     @if ($finding->evidence)<p class="mt-2 text-xs text-slate-400">Evidence: {{ $finding->evidence }}</p>@endif
