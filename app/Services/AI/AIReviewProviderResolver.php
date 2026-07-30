@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\Contracts\AIReviewProviderInterface;
 use App\Services\AI\Providers\FakeAIReviewProvider;
+use App\Services\AI\Providers\OpenAICompatibleResponseMapper;
 use App\Services\AI\Providers\OpenAICompatibleReviewProvider;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -46,6 +47,13 @@ final class AIReviewProviderResolver
             throw new RuntimeException('The AI provider model is not configured.');
         }
 
-        return new OpenAICompatibleReviewProvider($baseUrl, $endpoint, $key, $model, $timeout);
+        return new OpenAICompatibleReviewProvider(
+            new OpenAICompatibleResponseMapper(new AIReviewResponseValidator),
+            $baseUrl,
+            $endpoint,
+            $key,
+            $model,
+            $timeout,
+        );
     }
 }

@@ -10,6 +10,7 @@ use App\Services\AI\AIReviewPromptBuilder;
 use App\Services\AI\AIReviewResponseValidator;
 use App\Services\AI\AIReviewService;
 use App\Services\AI\Providers\FakeAIReviewProvider;
+use App\Services\AI\Providers\OpenAICompatibleResponseMapper;
 use App\Services\AI\Providers\OpenAICompatibleReviewProvider;
 use App\Services\AI\SafeAIReviewService;
 use App\ValueObjects\GitHubRepositoryMetadata;
@@ -125,6 +126,7 @@ class OpenAICompatibleReviewProviderTest extends TestCase
     private function provider(): OpenAICompatibleReviewProvider
     {
         return new OpenAICompatibleReviewProvider(
+            new OpenAICompatibleResponseMapper(new AIReviewResponseValidator),
             baseUrl: 'https://ai.example.test/v1',
             endpoint: 'chat/completions',
             key: 'test-key',
