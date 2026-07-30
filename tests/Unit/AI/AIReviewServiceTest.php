@@ -14,6 +14,7 @@ use App\Enums\RuleCategory;
 use App\Services\AI\AIReviewPromptBuilder;
 use App\Services\AI\AIReviewService;
 use App\Services\AI\Providers\FakeAIReviewProvider;
+use App\Services\AI\SafeAIReviewService;
 use App\ValueObjects\GitHubRepositoryMetadata;
 use Tests\TestCase;
 
@@ -103,6 +104,16 @@ class AIReviewServiceTest extends TestCase
     {
         $this->assertInstanceOf(FakeAIReviewProvider::class, $this->app->make(AIReviewProviderInterface::class));
         $this->assertInstanceOf(AIReviewService::class, $this->app->make(AIReviewService::class));
+    }
+
+    public function test_the_safe_decorator_is_resolvable_from_the_container(): void
+    {
+        $safe = $this->app->make(SafeAIReviewService::class);
+
+        $this->assertInstanceOf(SafeAIReviewService::class, $safe);
+        $this->assertTrue(
+            $safe->review($this->metadata(), (new FinalScoreCalculator)->report($this->findings()))->isAvailable
+        );
     }
 
     private function service(): AIReviewService
