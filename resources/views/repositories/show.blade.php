@@ -23,6 +23,7 @@
             <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div>
                     <p class="text-sm font-medium uppercase tracking-wider text-indigo-300">Overall Repository Health Score</p>
+                    <p class="mt-1 text-xs text-slate-400">Deterministic score</p>
                     <div class="mt-2 flex items-baseline gap-3">
                         <span class="text-5xl font-extrabold text-white sm:text-6xl">{{ $report->finalScore }}</span>
                         <span class="text-xl text-slate-400 font-medium">/ 100</span>
@@ -126,25 +127,44 @@
             <p class="text-sm font-semibold text-indigo-200">Deterministic checks</p>
             <h2 class="mt-2 text-2xl font-semibold text-white">Repository checks</h2>
             <p class="mt-2 text-sm text-slate-400">These are file and configuration signals only. No numeric score or source-code execution is used.</p>
-            @php($groupedFindings = collect($findings)->groupBy('category'))
-            <div class="mt-6 grid gap-6 lg:grid-cols-2">
-                @foreach ($groupedFindings as $category => $categoryFindings)
-                    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-                        <h3 class="font-semibold text-white">{{ $category }}</h3>
-                        <div class="mt-4 space-y-4">
-                            @foreach ($categoryFindings as $finding)
-                                <article class="border-l-2 pl-4 {{ $finding->status->value === 'warning' || $finding->status->value === 'improvement' ? 'border-amber-300' : ($finding->status->value === 'pass' ? 'border-emerald-300' : 'border-indigo-300') }}">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $finding->status->value }}</p>
-                                    <h4 class="mt-1 font-medium text-white">{{ $finding->title }}</h4>
-                                    <p class="mt-1 text-sm leading-6 text-slate-300">{{ $finding->message }}</p>
-                                    @if ($finding->evidence)<p class="mt-2 text-xs text-slate-400">Evidence: {{ $finding->evidence }}</p>@endif
-                                    @if ($finding->recommendation)<p class="mt-2 text-xs text-indigo-200">Recommendation: {{ $finding->recommendation }}</p>@endif
-                                </article>
-                            @endforeach
+
+            @php
+                $categories = collect($findings)->map(fn ($finding) => $finding->category->value)->unique()->sort()->values();
+                $severities = collect($findings)->map(fn ($finding) => $finding->severity->value)->unique()->values();
+                $statuses = collect($findings)->map(fn ($finding) => $finding->status->value)->unique()->sort()->values();
+            @endphp
+
+            <x-repositories.finding-filters :categories="$categories" :severities="$severities" :statuses="$statuses" />
+
+            <div class="mt-6 grid gap-4 lg:grid-cols-2">
+                @foreach ($findings as $finding)
+                    <article
+                        data-filter-target="finding"
+                        data-category="{{ $finding->category->value }}"
+                        data-severity="{{ $finding->severity->value }}"
+                        data-status="{{ $finding->status->value }}"
+                        class="rounded-2xl border border-white/10 bg-white/5 p-5"
+                    >
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="rounded-full border px-2.5 py-0.5 text-xs font-semibold {{ $finding->severity->value === 'high' ? 'border-rose-400/30 bg-rose-400/15 text-rose-200' : ($finding->severity->value === 'medium' ? 'border-amber-400/30 bg-amber-400/15 text-amber-200' : ($finding->severity->value === 'low' ? 'border-sky-400/30 bg-sky-400/15 text-sky-200' : 'border-slate-400/30 bg-slate-400/15 text-slate-200')) }}">
+                                {{ ucfirst($finding->severity->value) }}
+                            </span>
+                            <span class="rounded-full border border-white/15 px-2.5 py-0.5 text-xs text-slate-300">{{ $finding->category->value }}</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $finding->status->value }}</span>
+                            <span class="ml-auto font-mono text-xs text-slate-500">{{ $finding->ruleIdentifier }}</span>
                         </div>
-                    </div>
+                        <h3 class="mt-3 font-medium text-white">{{ $finding->title }}</h3>
+                        <p class="mt-1 text-sm leading-6 text-slate-300">{{ $finding->message }}</p>
+                        @if ($finding->evidence)<p class="mt-2 text-xs text-slate-400">Evidence: {{ $finding->evidence }}</p>@endif
+                        @if ($finding->recommendation)<p class="mt-2 text-xs text-indigo-200">Recommendation: {{ $finding->recommendation }}</p>@endif
+                        <p class="mt-3 text-xs text-slate-500">Source: deterministic check</p>
+                    </article>
                 @endforeach
             </div>
+
+            <p data-finding-empty hidden aria-live="polite" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                No matching repository checks for the selected filters.
+            </p>
         </section>
 
         <section class="mt-12">

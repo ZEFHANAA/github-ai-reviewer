@@ -74,6 +74,43 @@ class RepositorySubmissionTest extends TestCase
             ->assertDontSee('stack trace');
     }
 
+    public function test_the_report_marks_scores_as_deterministic_and_renders_findings_with_source_and_filter_markup(): void
+    {
+        $this->fakeGitHub();
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('Deterministic score')
+            ->assertSee('AI-assisted qualitative review')
+            ->assertSee('Clear filters')
+            ->assertSee('No matching repository checks')
+            ->assertSee('Filter by category')
+            ->assertSee('Filter by severity')
+            ->assertSee('Filter by status');
+    }
+
+    public function test_the_report_provides_data_attributes_for_client_side_filtering(): void
+    {
+        $this->fakeGitHub();
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $body = $response->getContent() ?: '';
+
+        $this->assertStringContainsString('data-repository-filters', $body);
+        $dataElement = collect(explode("\n", $body))->first(fn (string $line): bool => str_contains($line, 'data-repository-filters'));
+
+        $this->assertNotNull($dataElement, 'Expected a [data-repository-filters] container for the finding filters.');
+        $this->assertStringContainsString('data-filter-target="finding"', $body);
+        $this->assertStringContainsString('data-finding-empty', $body);
+    }
+
     /**
      * @return array<string, mixed>
      */
