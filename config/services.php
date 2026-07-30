@@ -8,8 +8,11 @@ return [
 
     'ai' => [
         'provider' => env('AI_PROVIDER', 'fake'),
+        'base_url' => env('AI_BASE_URL'),
+        'endpoint' => env('AI_ENDPOINT', 'chat/completions'),
         'model' => env('AI_MODEL'),
         'key' => env('AI_API_KEY'),
+        'timeout' => (int) env('AI_TIMEOUT', 30),
     ],
 
     /*
