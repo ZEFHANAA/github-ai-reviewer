@@ -54,6 +54,7 @@ class GitHubRepositoryService
     {
         $paths = $this->contents($repository, '', $metadata->defaultBranch);
         $unavailable = [];
+        $omitted = [];
         $requests = 1;
 
         if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github', $paths, true)) {
@@ -69,6 +70,7 @@ class GitHubRepositoryService
 
                 foreach ($subdirectories as $subdir) {
                     if ($requests >= self::MAX_CONTENT_REQUESTS) {
+                        $omitted[$subdir] = true;
                         break;
                     }
 
@@ -86,6 +88,10 @@ class GitHubRepositoryService
             }
         }
 
+        if ($requests >= self::MAX_CONTENT_REQUESTS && in_array('docs', $paths, true)) {
+            $omitted['docs'] = true;
+        }
+
         if ($requests < self::MAX_CONTENT_REQUESTS && in_array('docs', $paths, true)) {
             try {
                 $paths = [...$paths, ...$this->contents($repository, 'docs', $metadata->defaultBranch)];
@@ -95,7 +101,7 @@ class GitHubRepositoryService
             }
         }
 
-        return new RepositorySnapshot($metadata, array_values(array_unique($paths)), $unavailable);
+        return new RepositorySnapshot($metadata, array_values(array_unique($paths)), $unavailable, array_keys($omitted));
     }
 
     /** @return list<string> */

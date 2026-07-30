@@ -3,6 +3,10 @@
 namespace App\Services\Analysis;
 
 use App\Analysis\AnalysisFinding;
+use App\Analysis\RuleRegistry;
+use App\Enums\FindingScope;
+use App\Enums\FindingStatus;
+use App\Enums\RuleCategory;
 use App\ValueObjects\RepositorySnapshot;
 
 class DeterministicRepositoryAnalysisService
@@ -117,37 +121,53 @@ class DeterministicRepositoryAnalysisService
         $editor = $s->has('.editorconfig');
 
         return [
-            $this->check('DOC-README-001', 'Documentation', $readme, 'README', 'README documentation was detected.', 'README not detected. This is an improvement opportunity, not proof that documentation is absent elsewhere.', 'Add a README explaining setup and usage.'),
-            $this->check('DOC-LICENSE-001', 'Documentation', $license, 'License', 'A license file was detected.', 'License not detected.', 'Add an appropriate license file.'),
-            $this->check('DOC-CONTRIBUTING-001', 'Documentation', $contributing, 'Contribution guidance', 'Contribution guidance was detected.', 'Contribution guidance not detected.', 'Consider adding CONTRIBUTING.md.'),
-            $this->check('DOC-CONDUCT-001', 'Documentation', $conduct, 'Code of conduct', 'Code of conduct was detected.', 'Code of conduct not detected.', 'Consider adding CODE_OF_CONDUCT.md.'),
-            $this->check('DOC-CHANGELOG-001', 'Documentation', $changelog, 'Changelog', 'Changelog documentation was detected.', 'Changelog not detected.', 'Consider maintaining a CHANGELOG.md.'),
-            $this->check('COMM-ISSUE-001', 'Documentation', $issueTemplate, 'Issue templates', 'Issue templates directory or issue forms were detected.', 'Issue templates were not detected.', 'Consider adding issue templates in .github/ISSUE_TEMPLATE.'),
-            $this->check('COMM-BUG-001', 'Documentation', $bugTemplate, 'Bug report template', 'Bug report issue template was detected.', 'Bug report template was not detected.', 'Consider adding a bug report template or form.'),
-            $this->check('COMM-FEATURE-001', 'Documentation', $featureTemplate, 'Feature request template', 'Feature request issue template was detected.', 'Feature request template was not detected.', 'Consider adding a feature request template or form.'),
-            $this->check('COMM-PR-001', 'Documentation', $prTemplate, 'Pull request template', 'Pull request template was detected.', 'Pull request template was not detected.', 'Consider adding a pull request template.'),
-            $this->check('TEST-DIRECTORY-001', 'Testing', $tests, 'Test files', 'Recognizable test paths were detected.', 'Recognizable test paths were not detected. This does not measure coverage or test quality.', 'Add automated tests in a conventional directory.'),
-            $this->check('TEST-CONFIG-001', 'Testing', $testConfig, 'Test configuration', 'A recognizable test configuration file was detected.', 'A recognizable test configuration file was not detected.', 'Add or document the test runner configuration.'),
-            new AnalysisFinding('SEC-ENV-001', 'Security hygiene', $env ? 'warning' : 'pass', 'Environment file naming', $env ? 'A committed environment file name was detected. This is a potential hygiene risk, not proof that secrets are present.' : 'No obvious committed environment file name was detected.', $env ?: null, $env ? 'Review the file, remove any secrets, and rotate credentials if exposure is confirmed.' : null),
-            $this->check('SEC-POLICY-001', 'Security hygiene', $security, 'Security policy', 'Security policy was detected.', 'Security policy (SECURITY.md) was not detected.', 'Consider adding a SECURITY.md to document security vulnerability reporting procedures.'),
-            $this->check('SEC-DEPENDABOT-001', 'Security hygiene', $dependabot, 'Dependency update automation', 'Dependabot configuration was detected.', 'Dependabot configuration was not detected.', 'Consider dependency update automation.'),
-            $this->check('SEC-CODEQL-001', 'Security hygiene', $codeql, 'CodeQL scanning', 'CodeQL-related workflow detected.', 'CodeQL-related workflow was not detected.', 'Consider enabling CodeQL for security scanning.'),
-            new AnalysisFinding('STRUCT-MANIFEST-001', 'Project structure', $manifest ? 'pass' : 'unknown', 'Dependency/project manifest', 'Dependency/project manifest detected', $manifest ? implode("\n", $manifestFiles) : null, 'Data required for this check was not detected or was unavailable.', null),
-            $this->check('STRUCT-SOURCE-001', 'Project structure', $source, 'Source organization', 'A recognizable source directory was detected.', 'A recognizable source directory was not detected. Framework conventions may differ.', 'Use or document the source layout.'),
-            $this->check('GIT-CI-001', 'Git practices', $ci, 'CI workflow', 'GitHub Actions workflow detected.', 'GitHub Actions workflow was not detected. Another CI provider may be in use.', 'Consider adding a GitHub Actions workflow.'),
-            $this->check('GIT-IGNORE-001', 'Git practices', $ignore, '.gitignore', 'A .gitignore file was detected.', '.gitignore was not detected.', 'Add a .gitignore appropriate for the project.'),
-            $this->check('CODE-CONFIG-001', 'Code quality', $editor, 'Editor configuration', 'An editor configuration file was detected.', 'An editor configuration file was not detected.', 'Consider adding shared formatting/editor configuration.'),
+            $this->finding('DOC-README-001', $readme, $this->resolveScope($s), 'README', 'README documentation was detected.', 'README not detected. This is an improvement opportunity, not proof that documentation is absent elsewhere.', 'Add a README explaining setup and usage.'),
+            $this->finding('DOC-LICENSE-001', $license, $this->resolveScope($s), 'License', 'A license file was detected.', 'License not detected.', 'Add an appropriate license file.'),
+            $this->finding('DOC-CONTRIBUTING-001', $contributing, $this->resolveScope($s, '.github', 'docs'), 'Contribution guidance', 'Contribution guidance was detected.', 'Contribution guidance not detected.', 'Consider adding CONTRIBUTING.md.'),
+            $this->finding('DOC-CONDUCT-001', $conduct, $this->resolveScope($s, '.github', 'docs'), 'Code of conduct', 'Code of conduct was detected.', 'Code of conduct not detected.', 'Consider adding CODE_OF_CONDUCT.md.'),
+            $this->finding('DOC-CHANGELOG-001', $changelog, $this->resolveScope($s, '.github', 'docs'), 'Changelog', 'Changelog documentation was detected.', 'Changelog not detected.', 'Consider maintaining a CHANGELOG.md.'),
+            $this->finding('COMM-ISSUE-001', $issueTemplate, $this->resolveScope($s, '.github'), 'Issue templates', 'Issue templates directory or issue forms were detected.', 'Issue templates were not detected.', 'Consider adding issue templates in .github/ISSUE_TEMPLATE.'),
+            $this->finding('COMM-BUG-001', $bugTemplate, $this->resolveScope($s, '.github'), 'Bug report template', 'Bug report issue template was detected.', 'Bug report template was not detected.', 'Consider adding a bug report template or form.'),
+            $this->finding('COMM-FEATURE-001', $featureTemplate, $this->resolveScope($s, '.github'), 'Feature request template', 'Feature request issue template was detected.', 'Feature request template was not detected.', 'Consider adding a feature request template or form.'),
+            $this->finding('COMM-PR-001', $prTemplate, $this->resolveScope($s, '.github'), 'Pull request template', 'Pull request template was detected.', 'Pull request template was not detected.', 'Consider adding a pull request template.'),
+            $this->finding('TEST-DIRECTORY-001', $tests, $this->resolveScope($s), 'Test files', 'Recognizable test paths were detected.', 'Recognizable test paths were not detected. This does not measure coverage or test quality.', 'Add automated tests in a conventional directory.'),
+            $this->finding('TEST-CONFIG-001', $testConfig, $this->resolveScope($s), 'Test configuration', 'A recognizable test configuration file was detected.', 'A recognizable test configuration file was not detected.', 'Add or document the test runner configuration.'),
+            new AnalysisFinding('SEC-ENV-001', RuleCategory::SecurityHygiene, $env ? FindingStatus::Improvement : FindingStatus::Pass, $this->resolveScope($s), RuleRegistry::severity('SEC-ENV-001'), 'Environment file naming', $env ? 'A committed environment file name was detected. This is a potential hygiene risk, not proof that secrets are present.' : 'No obvious committed environment file name was detected.', $env ?: null, $env ? 'Review the file, remove any secrets, and rotate credentials if exposure is confirmed.' : null),
+            $this->finding('SEC-POLICY-001', $security, $this->resolveScope($s, '.github', 'docs'), 'Security policy', 'Security policy was detected.', 'Security policy (SECURITY.md) was not detected.', 'Consider adding a SECURITY.md to document security vulnerability reporting procedures.'),
+            $this->finding('SEC-DEPENDABOT-001', $dependabot, $this->resolveScope($s, '.github'), 'Dependency update automation', 'Dependabot configuration was detected.', 'Dependabot configuration was not detected.', 'Consider dependency update automation.'),
+            $this->finding('SEC-CODEQL-001', $codeql, $this->resolveScope($s, '.github/workflows'), 'CodeQL scanning', 'CodeQL-related workflow detected.', 'CodeQL-related workflow was not detected.', 'Consider enabling CodeQL for security scanning.'),
+            new AnalysisFinding('STRUCT-MANIFEST-001', RuleCategory::ProjectStructure, $manifest ? FindingStatus::Pass : FindingStatus::Unknown, FindingScope::RootOnly, RuleRegistry::severity('STRUCT-MANIFEST-001'), 'Dependency/project manifest', 'Dependency/project manifest detected', $manifest ? implode("\n", $manifestFiles) : null, null, $manifest ? null : 'Add the dependency manifest where applicable.'),
+            $this->finding('STRUCT-SOURCE-001', $source, $this->resolveScope($s), 'Source organization', 'A recognizable source directory was detected.', 'A recognizable source directory was not detected. Framework conventions may differ.', 'Use or document the source layout.'),
+            $this->finding('GIT-CI-001', $ci, $this->resolveScope($s, '.github/workflows'), 'CI workflow', 'GitHub Actions workflow detected.', 'GitHub Actions workflow was not detected. Another CI provider may be in use.', 'Consider adding a GitHub Actions workflow.'),
+            $this->finding('GIT-IGNORE-001', $ignore, $this->resolveScope($s), '.gitignore', 'A .gitignore file was detected.', '.gitignore was not detected.', 'Add a .gitignore appropriate for the project.'),
+            $this->finding('CODE-CONFIG-001', $editor, $this->resolveScope($s), 'Editor configuration', 'An editor configuration file was detected.', 'An editor configuration file was not detected.', 'Consider adding shared formatting/editor configuration.'),
         ];
     }
 
-    private function check(string $rule, string $category, ?bool $pass, string $title, string $yes, string $no, string $recommendation): AnalysisFinding
+    private function resolveScope(RepositorySnapshot $s, string ...$paths): FindingScope
     {
-        $status = $pass === null ? 'unknown' : ($pass ? 'pass' : 'improvement');
+        foreach ($paths as $path) {
+            if ($s->isOmitted($path)) {
+                return FindingScope::OmittedBudget;
+            }
+            if ($this->isUnavailable($s, $path)) {
+                return FindingScope::Unavailable;
+            }
+        }
+
+        return FindingScope::Inspected;
+    }
+
+    private function finding(string $rule, ?bool $pass, FindingScope $scope, string $title, string $yes, string $no, string $recommendation): AnalysisFinding
+    {
+        $status = $pass === null ? FindingStatus::Unknown : ($pass ? FindingStatus::Pass : FindingStatus::Improvement);
 
         return new AnalysisFinding(
             $rule,
-            $category,
+            RuleRegistry::get($rule)->category,
             $status,
+            $scope,
+            RuleRegistry::severity($rule),
             $title,
             $pass === true ? $yes : ($pass === false ? $no : 'Data required for this check was not detected or was unavailable.'),
             null,
