@@ -123,6 +123,59 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
         $this->assertEquals('unknown', collect($findings)->firstWhere('ruleIdentifier', 'COMM-PR-001')->status);
     }
 
+    public function test_it_detects_dependabot_configuration(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/dependabot.yml'])))->firstWhere('ruleIdentifier', 'SEC-DEPENDABOT-001')->status);
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/dependabot.yaml'])))->firstWhere('ruleIdentifier', 'SEC-DEPENDABOT-001')->status);
+    }
+
+    public function test_it_returns_unknown_for_dependabot_if_github_is_unavailable(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('unknown', collect($service->analyze($this->snapshot([], ['.github'])))->firstWhere('ruleIdentifier', 'SEC-DEPENDABOT-001')->status);
+    }
+
+    public function test_it_detects_github_actions_workflow_files(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/ci.yml'])))->firstWhere('ruleIdentifier', 'GIT-CI-001')->status);
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/deploy.yaml'])))->firstWhere('ruleIdentifier', 'GIT-CI-001')->status);
+    }
+
+    public function test_it_returns_unknown_for_ci_if_workflows_unavailable(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('unknown', collect($service->analyze($this->snapshot([], ['.github/workflows'])))->firstWhere('ruleIdentifier', 'GIT-CI-001')->status);
+    }
+
+    public function test_it_returns_improvement_for_ci_if_workflows_inspected_but_absent(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('improvement', collect($service->analyze($this->snapshot(['.github/workflows'])))->firstWhere('ruleIdentifier', 'GIT-CI-001')->status);
+    }
+
+    public function test_it_detects_codeql_workflow_by_filename(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/codeql.yml'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/codeql.yaml'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/codeql-analysis.yml'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+        $this->assertEquals('pass', collect($service->analyze($this->snapshot(['.github/workflows/codeql-analysis.yaml'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+    }
+
+    public function test_it_returns_unknown_for_codeql_if_workflows_unavailable(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('unknown', collect($service->analyze($this->snapshot([], ['.github/workflows'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+    }
+
+    public function test_it_returns_improvement_for_codeql_if_workflows_inspected_but_absent(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $this->assertEquals('improvement', collect($service->analyze($this->snapshot(['.github/workflows/ci.yml'])))->firstWhere('ruleIdentifier', 'SEC-CODEQL-001')->status);
+    }
+
     public function test_it_detects_source_organization(): void
     {
         $service = new DeterministicRepositoryAnalysisService;

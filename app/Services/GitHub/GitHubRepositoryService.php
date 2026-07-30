@@ -62,14 +62,24 @@ class GitHubRepositoryService
                 $paths = [...$paths, ...$githubPaths];
                 $requests++;
 
-                if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github/ISSUE_TEMPLATE', $githubPaths, true)) {
-                    $paths = [...$paths, ...$this->contents($repository, '.github/ISSUE_TEMPLATE', $metadata->defaultBranch)];
-                    $requests++;
-                }
+                // Subdirectory priority list within .github:
+                // Priority 1: .github/workflows (CI, CD, CodeQL, security scanning)
+                // Priority 2: .github/ISSUE_TEMPLATE (Issue templates & forms)
+                $subdirectories = ['.github/workflows', '.github/ISSUE_TEMPLATE'];
 
-                if ($requests < self::MAX_CONTENT_REQUESTS && in_array('.github/workflows', $githubPaths, true)) {
-                    $paths = [...$paths, ...$this->contents($repository, '.github/workflows', $metadata->defaultBranch)];
-                    $requests++;
+                foreach ($subdirectories as $subdir) {
+                    if ($requests >= self::MAX_CONTENT_REQUESTS) {
+                        break;
+                    }
+
+                    if (in_array($subdir, $githubPaths, true)) {
+                        try {
+                            $paths = [...$paths, ...$this->contents($repository, $subdir, $metadata->defaultBranch)];
+                            $requests++;
+                        } catch (\Throwable) {
+                            $unavailable[] = $subdir;
+                        }
+                    }
                 }
             } catch (\Throwable) {
                 $unavailable[] = '.github';
