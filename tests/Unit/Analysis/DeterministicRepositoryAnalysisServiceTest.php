@@ -184,6 +184,39 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
         $this->assertEquals('pass', collect($service->analyze($this->snapshot(['lib'])))->firstWhere('ruleIdentifier', 'STRUCT-SOURCE-001')->status);
     }
 
+    public function test_it_detects_dependency_manifests_and_reports_all_ecosystems(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+
+        foreach ([
+            'composer.json', 'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod',
+            'pom.xml', 'build.gradle.kts', 'Gemfile', 'App.csproj', 'Solution.sln', 'pubspec.yaml',
+        ] as $manifest) {
+            $finding = collect($service->analyze($this->snapshot([$manifest])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+            $this->assertEquals('pass', $finding->status, $manifest);
+            $this->assertSame($manifest, $finding->evidence, $manifest);
+        }
+
+        $finding = collect($service->analyze($this->snapshot(['composer.json', 'package.json'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+        $this->assertEquals('pass', $finding->status);
+        $this->assertSame("composer.json\npackage.json", $finding->evidence);
+    }
+
+    public function test_it_returns_unknown_for_an_unrecognized_manifest_set(): void
+    {
+        $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['random.txt'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+
+        $this->assertEquals('unknown', $finding->status);
+        $this->assertNull($finding->evidence);
+    }
+
+    public function test_it_does_not_read_manifest_contents_or_subdirectories(): void
+    {
+        $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['apps/api/composer.json'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+
+        $this->assertEquals('unknown', $finding->status);
+    }
+
     public function test_it_returns_unknown_for_missing_source_organization(): void
     {
         $service = new DeterministicRepositoryAnalysisService;

@@ -71,7 +71,43 @@ class DeterministicRepositoryAnalysisService
         $ci = $hasWorkflow ? true : ($workflowUnavailable ? null : false);
         $hasCodeql = collect($s->paths)->contains(fn ($p) => preg_match('#^\\.github/workflows/(codeql|codeql-analysis)\\.(yml|yaml)$#i', $p) === 1);
         $codeql = $hasCodeql ? true : ($workflowUnavailable ? null : false);
-        $manifest = collect(['composer.json', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'cargo.toml'])->contains(fn ($p) => $s->has($p));
+        $manifestNames = array_map(strtolower(...), [
+            'composer.json',
+            'package.json',
+            'pyproject.toml',
+            'requirements.txt',
+            'setup.py',
+            'setup.cfg',
+            'Pipfile',
+            'Cargo.toml',
+            'go.mod',
+            'pom.xml',
+            'build.gradle',
+            'build.gradle.kts',
+            'Gemfile',
+            'pubspec.yaml',
+            'mix.exs',
+            'Package.swift',
+        ]);
+        $manifestFiles = collect($s->paths)
+            ->filter(fn ($p) => ! str_contains($p, '/'))
+            ->filter(function (string $path) use ($manifestNames): bool {
+                $basename = strtolower(basename($path));
+                if (in_array($basename, $manifestNames, true)) {
+                    return true;
+                }
+                foreach (['csproj', 'fsproj', 'sln'] as $suffix) {
+                    if (str_ends_with($basename, '.'.$suffix)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->map(fn ($p) => basename($p))
+            ->values()
+            ->all();
+        $manifest = $manifestFiles !== [];
 
         // Rule C: Source organization
         $hasSource = $this->matchAnyPath($s, ['app', 'src', 'lib']);
@@ -96,7 +132,7 @@ class DeterministicRepositoryAnalysisService
             $this->check('SEC-POLICY-001', 'Security hygiene', $security, 'Security policy', 'Security policy was detected.', 'Security policy (SECURITY.md) was not detected.', 'Consider adding a SECURITY.md to document security vulnerability reporting procedures.'),
             $this->check('SEC-DEPENDABOT-001', 'Security hygiene', $dependabot, 'Dependency update automation', 'Dependabot configuration was detected.', 'Dependabot configuration was not detected.', 'Consider dependency update automation.'),
             $this->check('SEC-CODEQL-001', 'Security hygiene', $codeql, 'CodeQL scanning', 'CodeQL-related workflow detected.', 'CodeQL-related workflow was not detected.', 'Consider enabling CodeQL for security scanning.'),
-            $this->check('STRUCT-DEPS-001', 'Project structure', $manifest, 'Dependency manifest', 'A common dependency manifest was detected.', 'A common dependency manifest was not detected.', 'Add the dependency manifest where applicable.'),
+            new AnalysisFinding('STRUCT-MANIFEST-001', 'Project structure', $manifest ? 'pass' : 'unknown', 'Dependency/project manifest', 'Dependency/project manifest detected', $manifest ? implode("\n", $manifestFiles) : null, 'Data required for this check was not detected or was unavailable.', null),
             $this->check('STRUCT-SOURCE-001', 'Project structure', $source, 'Source organization', 'A recognizable source directory was detected.', 'A recognizable source directory was not detected. Framework conventions may differ.', 'Use or document the source layout.'),
             $this->check('GIT-CI-001', 'Git practices', $ci, 'CI workflow', 'GitHub Actions workflow detected.', 'GitHub Actions workflow was not detected. Another CI provider may be in use.', 'Consider adding a GitHub Actions workflow.'),
             $this->check('GIT-IGNORE-001', 'Git practices', $ignore, '.gitignore', 'A .gitignore file was detected.', '.gitignore was not detected.', 'Add a .gitignore appropriate for the project.'),
