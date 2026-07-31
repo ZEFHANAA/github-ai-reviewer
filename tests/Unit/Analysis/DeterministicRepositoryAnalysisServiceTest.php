@@ -6,6 +6,7 @@ use App\Analysis\AnalysisFinding;
 use App\Enums\FindingScope;
 use App\Enums\FindingSeverity;
 use App\Enums\FindingStatus;
+use App\Enums\RuleCategory;
 use App\Services\Analysis\DeterministicRepositoryAnalysisService;
 use App\ValueObjects\GitHubRepositoryMetadata;
 use App\ValueObjects\RepositorySnapshot;
@@ -231,6 +232,71 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
         $this->assertSame("composer.json\npackage.json", $finding->evidence);
     }
 
+    public function test_multi_ecosystem_manifest_finding_reports_full_contract(): void
+    {
+        // Characterization: evidence preserves snapshot path order, joined by "\n"; Pass carries no recommendation.
+        $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['composer.json', 'package.json', 'go.mod'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+
+        $this->assertSame(FindingStatus::Pass, $finding->status);
+        $this->assertSame(FindingScope::RootOnly, $finding->scope);
+        $this->assertSame("composer.json\npackage.json\ngo.mod", $finding->evidence);
+        $this->assertNull($finding->recommendation);
+        // Full contract lock: category, severity (RuleRegistry: Medium), title, and fixed message.
+        $this->assertSame(RuleCategory::ProjectStructure, $finding->category);
+        $this->assertSame(FindingSeverity::Medium, $finding->severity);
+        $this->assertSame('Dependency/project manifest', $finding->title);
+        $this->assertSame('Dependency/project manifest detected', $finding->message);
+    }
+
+    public function test_manifest_unknown_carries_recommendation_and_root_only_scope(): void
+    {
+        // Characterization: Unknown keeps RootOnly scope (hardcoded), null evidence, exact recommendation text.
+        $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['random.txt'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+
+        $this->assertSame(FindingStatus::Unknown, $finding->status);
+        $this->assertSame(FindingScope::RootOnly, $finding->scope);
+        $this->assertNull($finding->evidence);
+        $this->assertSame('Add the dependency manifest where applicable.', $finding->recommendation);
+    }
+
+    public function test_non_root_manifest_is_excluded_from_multi_ecosystem_evidence(): void
+    {
+        // Characterization: nested manifest (apps/web/package.json) never reaches evidence; root ones remain.
+        $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['composer.json', 'apps/web/package.json', 'go.mod'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
+
+        $this->assertSame(FindingStatus::Pass, $finding->status);
+        $this->assertSame("composer.json\ngo.mod", $finding->evidence);
+    }
+
+    public function test_environment_file_findings_use_repository_wide_contract(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+
+        $template = collect($service->analyze($this->snapshot(['config/.env.example'])))->firstWhere('ruleIdentifier', 'SEC-ENV-001');
+        $this->assertSame(FindingStatus::Pass, $template->status);
+        $this->assertSame(FindingScope::Inspected, $template->scope);
+        $this->assertSame(FindingSeverity::High, $template->severity);
+        $this->assertSame(RuleCategory::SecurityHygiene, $template->category);
+        $this->assertNull($template->evidence);
+        $this->assertNull($template->recommendation);
+
+        $root = collect($service->analyze($this->snapshot(['.env'])))->firstWhere('ruleIdentifier', 'SEC-ENV-001');
+        $this->assertSame(FindingStatus::Improvement, $root->status);
+        $this->assertSame(FindingScope::Inspected, $root->scope);
+        $this->assertSame(FindingSeverity::High, $root->severity);
+        $this->assertSame(RuleCategory::SecurityHygiene, $root->category);
+        $this->assertSame('.env', $root->evidence);
+        $this->assertSame('Review the file, remove any secrets, and rotate credentials if exposure is confirmed.', $root->recommendation);
+
+        $nested = collect($service->analyze($this->snapshot(['apps/api/.env.production'])))->firstWhere('ruleIdentifier', 'SEC-ENV-001');
+        $this->assertSame(FindingStatus::Improvement, $nested->status);
+        $this->assertSame(FindingScope::Inspected, $nested->scope);
+        $this->assertSame(FindingSeverity::High, $nested->severity);
+        $this->assertSame(RuleCategory::SecurityHygiene, $nested->category);
+        $this->assertSame('apps/api/.env.production', $nested->evidence);
+        $this->assertSame('Review the file, remove any secrets, and rotate credentials if exposure is confirmed.', $nested->recommendation);
+    }
+
     public function test_it_returns_unknown_for_an_unrecognized_manifest_set(): void
     {
         $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['random.txt'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
@@ -265,6 +331,36 @@ class DeterministicRepositoryAnalysisServiceTest extends TestCase
     {
         $finding = collect((new DeterministicRepositoryAnalysisService)->analyze($this->snapshot(['composer.json', 'package.json'])))->firstWhere('ruleIdentifier', 'STRUCT-MANIFEST-001');
         $this->assertSame(FindingScope::RootOnly, $finding->scope);
+    }
+
+    public function test_issue_template_scope_resolution_uses_public_analyzer_contract(): void
+    {
+        $service = new DeterministicRepositoryAnalysisService;
+        $recommendation = 'Consider adding issue templates in .github/ISSUE_TEMPLATE.';
+
+        $inspected = collect($service->analyze($this->snapshot(['.github'])))->firstWhere('ruleIdentifier', 'COMM-ISSUE-001');
+        $this->assertSame(FindingStatus::Improvement, $inspected->status);
+        $this->assertSame(FindingScope::Inspected, $inspected->scope);
+        $this->assertNull($inspected->evidence);
+        $this->assertSame($recommendation, $inspected->recommendation);
+
+        $unavailable = collect($service->analyze($this->snapshot([], ['.github'])))->firstWhere('ruleIdentifier', 'COMM-ISSUE-001');
+        $this->assertSame(FindingStatus::Unknown, $unavailable->status);
+        $this->assertSame(FindingScope::Unavailable, $unavailable->scope);
+        $this->assertNull($unavailable->evidence);
+        $this->assertSame($recommendation, $unavailable->recommendation);
+
+        $payload = json_decode(file_get_contents(base_path('tests/Fixtures/github-repository.json')), true, 512, JSON_THROW_ON_ERROR);
+        $omitted = collect($service->analyze(new RepositorySnapshot(
+            GitHubRepositoryMetadata::fromGitHubResponse($payload),
+            ['.github'],
+            [],
+            ['.github'],
+        )))->firstWhere('ruleIdentifier', 'COMM-ISSUE-001');
+        $this->assertSame(FindingStatus::Improvement, $omitted->status);
+        $this->assertSame(FindingScope::OmittedBudget, $omitted->scope);
+        $this->assertNull($omitted->evidence);
+        $this->assertSame($recommendation, $omitted->recommendation);
     }
 
     public function test_unavailable_scope_when_github_unavailable(): void

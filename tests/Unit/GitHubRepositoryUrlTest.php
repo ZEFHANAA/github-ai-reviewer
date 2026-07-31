@@ -25,6 +25,41 @@ class GitHubRepositoryUrlTest extends TestCase
         $this->assertSame('https://github.com/laravel/laravel', $repository->canonicalUrl);
     }
 
+    public function test_owner_length_boundary_accepts_39_characters_and_rejects_40_characters(): void
+    {
+        $owner39 = 'a'.str_repeat('b', 37).'c';
+        $owner40 = 'a'.str_repeat('b', 38).'c';
+
+        $this->assertSame($owner39, GitHubRepositoryUrl::parse("https://github.com/{$owner39}/repository")->owner);
+
+        $this->expectException(InvalidArgumentException::class);
+        GitHubRepositoryUrl::parse("https://github.com/{$owner40}/repository");
+    }
+
+    public function test_it_preserves_owner_and_name_case_in_the_canonical_url(): void
+    {
+        $repository = GitHubRepositoryUrl::parse('https://github.com/Laravel/Framework');
+
+        $this->assertSame('Laravel', $repository->owner);
+        $this->assertSame('Framework', $repository->name);
+        $this->assertSame('https://github.com/Laravel/Framework', $repository->canonicalUrl);
+    }
+
+    public function test_it_accepts_a_repository_name_containing_dots(): void
+    {
+        $repository = GitHubRepositoryUrl::parse('https://github.com/octocat/my.repo');
+
+        $this->assertSame('my.repo', $repository->name);
+        $this->assertSame('https://github.com/octocat/my.repo', $repository->canonicalUrl);
+    }
+
+    public function test_it_accepts_a_name_containing_dot_git_that_is_not_the_suffix(): void
+    {
+        $repository = GitHubRepositoryUrl::parse('https://github.com/octocat/repo.git.backup');
+
+        $this->assertSame('repo.git.backup', $repository->name);
+    }
+
     #[DataProvider('invalidUrls')]
     public function test_it_rejects_invalid_repository_urls(string $url): void
     {

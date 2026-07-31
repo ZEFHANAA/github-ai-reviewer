@@ -233,6 +233,34 @@ class RepositorySubmissionTest extends TestCase
         $response->assertOk()->assertSee('data-analysis-id="'.$analysis->id.'"', false);
     }
 
+    public function test_a_github_500_during_snapshot_mid_flight_returns_a_friendly_error_without_persisting(): void
+    {
+        // Metadata succeeds, but the root /contents/ listing returns 500.
+        // Contract: GitHubRepositoryService maps non-404/429/403-exhausted failures to
+        // GitHubServiceUnavailableException (status 503), which the controller catches and
+        // renders via repositories.error. Persistence runs only after snapshot+analysis, so no
+        // repository/analysis/finding rows should exist after the failure.
+        Http::fake([
+            'api.github.com/repos/laravel/laravel' => Http::response($this->repositoryPayload()),
+            'api.github.com/repos/laravel/laravel/contents*' => Http::response([], 500),
+        ]);
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $response
+            ->assertStatus(503)
+            ->assertSee('We could not retrieve this repository.')
+            ->assertSee('GitHub is temporarily unavailable. Please try again shortly.')
+            ->assertDontSee('Overall Repository Health Score')
+            ->assertDontSee('stack trace');
+
+        $this->assertDatabaseCount('repositories', 0);
+        $this->assertDatabaseCount('analyses', 0);
+        $this->assertDatabaseCount('findings', 0);
+    }
+
     public function test_a_rate_limited_submission_is_user_friendly_and_does_not_persist_new_records(): void
     {
         $this->fakeGitHub();

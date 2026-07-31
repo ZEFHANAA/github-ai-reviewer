@@ -54,6 +54,27 @@ class SecretRedactorTest extends TestCase
         $this->assertSame('nothing sensitive here', $redactor->redact('nothing sensitive here'));
     }
 
+    public function test_it_redacts_every_pattern_and_a_configured_literal_in_a_single_pass(): void
+    {
+        $redactor = new SecretRedactor(['my-secret']);
+
+        $this->assertSame(
+            'Bearer [redacted] [redacted] config [redacted]',
+            $redactor->redact('Bearer ghp_aaaaaaaaaaaaaaaa sk-bbbbbbbbbbbbbbbb config my-secret')
+        );
+    }
+
+    public function test_it_redacts_across_newlines_in_a_multiline_payload(): void
+    {
+        $redactor = new SecretRedactor(['my-secret']);
+        $payload = "Authorization: Bearer ghp_aaaaaaaaaaaaaaaa\nconfig=my-secret\nkey=sk-bbbbbbbbbbbbbbbb";
+
+        $this->assertSame(
+            "Authorization: Bearer [redacted]\nconfig=[redacted]\nkey=[redacted]",
+            $redactor->redact($payload)
+        );
+    }
+
     public function test_it_leaves_text_without_secrets_unchanged(): void
     {
         $redactor = new SecretRedactor;
