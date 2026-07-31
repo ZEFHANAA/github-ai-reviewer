@@ -22,12 +22,24 @@ final readonly class OpenAICompatibleReviewProvider implements AIReviewProviderI
         private string $key,
         private string $model,
         private int $timeout,
+        private int $connectTimeout,
     ) {}
+
+    public function timeout(): int
+    {
+        return $this->timeout;
+    }
+
+    public function connectTimeout(): int
+    {
+        return $this->connectTimeout;
+    }
 
     public function review(AIReviewRequest $request): AIReviewResponse
     {
         $response = Http::withToken($this->key)
             ->timeout($this->timeout)
+            ->connectTimeout($this->connectTimeout)
             ->acceptJson()
             ->asJson()
             ->post(rtrim($this->baseUrl, '/').'/'.ltrim($this->endpoint, '/'), [

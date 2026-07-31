@@ -6,9 +6,12 @@ use App\AI\AIReviewRequest;
 use App\AI\AIReviewResponse;
 use App\Contracts\AIReviewProviderInterface;
 use App\Models\Analysis;
+use App\Models\Finding;
+use App\Models\Repository;
 use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class RepositorySubmissionTest extends TestCase
@@ -48,6 +51,39 @@ class RepositorySubmissionTest extends TestCase
             ->assertSee('Category Scores')
             ->assertSee('Repository checks')
             ->assertSee('Deterministic checks');
+    }
+
+    #[DataProvider('repositoryUrlRenderCases')]
+    public function test_the_report_renders_only_https_repository_urls_as_active_links(string $url, bool $isActiveLink): void
+    {
+        $this->fakeGitHub(['html_url' => $url]);
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $body = $response->assertOk()->getContent() ?: '';
+
+        $this->assertStringContainsString(e($url), $body);
+
+        if ($isActiveLink) {
+            $this->assertStringContainsString('href="'.e($url).'"', $body);
+        } else {
+            $this->assertStringNotContainsString('href="'.e($url).'"', $body);
+        }
+    }
+
+    /**
+     * @return array<string, array{string, bool}>
+     */
+    public static function repositoryUrlRenderCases(): array
+    {
+        return [
+            'https' => ['https://github.com/laravel/laravel', true],
+            'http' => ['http://github.com/laravel/laravel', false],
+            'javascript' => ['javascript:alert(1)', false],
+            'malformed' => ['not a valid URL', false],
+        ];
     }
 
     public function test_invalid_repository_submission_redirects_back_with_the_input_and_error(): void
@@ -197,10 +233,36 @@ class RepositorySubmissionTest extends TestCase
         $response->assertOk()->assertSee('data-analysis-id="'.$analysis->id.'"', false);
     }
 
-    private function fakeGitHub(): void
+    public function test_a_rate_limited_submission_is_user_friendly_and_does_not_persist_new_records(): void
     {
+        $this->fakeGitHub();
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+                ->post(route('repositories.submit'), ['repository_url' => 'https://github.com/laravel/laravel'])
+                ->assertOk();
+        }
+
+        $repositories = Repository::count();
+        $analyses = Analysis::count();
+        $findings = Finding::count();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->post(route('repositories.submit'), ['repository_url' => 'https://github.com/laravel/laravel'])
+            ->assertTooManyRequests()
+            ->assertSee('Too many repository analyses. Please try again in a minute.');
+
+        $this->assertDatabaseCount('repositories', $repositories);
+        $this->assertDatabaseCount('analyses', $analyses);
+        $this->assertDatabaseCount('findings', $findings);
+    }
+
+    private function fakeGitHub(array $overrides = []): void
+    {
+        $payload = array_merge($this->repositoryPayload(), $overrides);
+
         Http::fake([
-            'api.github.com/repos/laravel/laravel' => Http::response($this->repositoryPayload()),
+            'api.github.com/repos/laravel/laravel' => Http::response($payload),
             'api.github.com/repos/laravel/laravel/contents/' => Http::response([
                 ['path' => 'README.md'], ['path' => 'LICENSE'], ['path' => '.gitignore'], ['path' => 'composer.json'], ['path' => 'app'], ['path' => 'tests'],
             ]),

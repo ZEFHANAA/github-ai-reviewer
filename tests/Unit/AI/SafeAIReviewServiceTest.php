@@ -17,6 +17,7 @@ use App\Services\AI\AIReviewPromptBuilder;
 use App\Services\AI\AIReviewResponseValidator;
 use App\Services\AI\AIReviewService;
 use App\Services\AI\SafeAIReviewService;
+use App\Support\SecretRedactor;
 use App\ValueObjects\GitHubRepositoryMetadata;
 use Error;
 use Exception;
@@ -38,14 +39,36 @@ class SafeAIReviewServiceTest extends TestCase
     public function test_a_provider_exception_produces_an_unavailable_outcome_without_throwing(): void
     {
         $logger = new RecordingLogger;
-        $outcome = $this->safe($this->providerThrowing(new Exception('token=secret endpoint=https://example.test')), $logger)
+        $outcome = $this->safe($this->providerThrowing(new Exception('token=ghp_abcdefghijklmnopqrstuvwxyz0123456789 endpoint=https://example.test')), $logger)
             ->review($this->metadata(), $this->report());
 
         $this->assertFalse($outcome->isAvailable);
         $this->assertNull($outcome->response);
         $this->assertSame('AI review is temporarily unavailable.', $outcome->failureReason);
         $this->assertCount(1, $logger->records);
-        $this->assertSame('token=secret endpoint=https://example.test', $logger->records[0]['context']['exception']->getMessage());
+        $this->assertSame('token=[redacted] endpoint=https://example.test', $logger->records[0]['context']['error']);
+        $this->assertArrayNotHasKey('exception', $logger->records[0]['context']);
+    }
+
+    public function test_failure_logs_are_informative_without_exception_data_or_any_configured_secret(): void
+    {
+        $logger = new RecordingLogger;
+        $secret = 'future-provider-secret';
+        $outcome = $this->safe(
+            $this->providerThrowing(new Exception("Bearer {$secret}; token={$secret}; trace should not be logged")),
+            $logger,
+            new SecretRedactor([$secret]),
+        )->review($this->metadata(), $this->report());
+
+        $this->assertFalse($outcome->isAvailable);
+        $record = $logger->records[0];
+        $serialized = json_encode($record, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(Exception::class, $record['context']['exception_class']);
+        $this->assertStringContainsString('Bearer [redacted]', $record['context']['error']);
+        $this->assertStringNotContainsString($secret, $serialized);
+        $this->assertArrayNotHasKey('exception', $record['context']);
+        $this->assertArrayNotHasKey('trace', $record['context']);
     }
 
     public function test_a_provider_error_produces_an_unavailable_outcome_without_throwing(): void
@@ -117,12 +140,13 @@ class SafeAIReviewServiceTest extends TestCase
         $this->assertSame([], $unavailable->sections);
     }
 
-    private function safe(AIReviewProviderInterface $provider, ?RecordingLogger $logger = null): SafeAIReviewService
+    private function safe(AIReviewProviderInterface $provider, ?RecordingLogger $logger = null, ?SecretRedactor $redactor = null): SafeAIReviewService
     {
         return new SafeAIReviewService(
             new AIReviewService($provider, new AIReviewPromptBuilder),
             new AIReviewResponseValidator,
-            $logger ?? new RecordingLogger
+            $logger ?? new RecordingLogger,
+            $redactor ?? new SecretRedactor
         );
     }
 

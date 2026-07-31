@@ -13,6 +13,15 @@ final class AIReviewPromptBuilder
 
     public const DATA_END = '<<<END_REPOSITORY_DATA>>>';
 
+    /** 12 KB keeps request payloads predictable while retaining normal repository context. */
+    public const MAX_PROMPT_BYTES = 12000;
+
+    /** Marker appended inside the data block when findings were dropped to fit the byte limit. */
+    public const TRUNCATION_NOTICE = '[repository data truncated to fit the prompt size limit]';
+
+    /** 1 KB per untrusted field prevents one metadata value from consuming the prompt budget. */
+    public const MAX_FIELD_BYTES = 1000;
+
     /** Allowed AI output sections; the AI must produce these and nothing else. */
     public const SECTIONS = [
         'Repository Summary',
@@ -22,6 +31,14 @@ final class AIReviewPromptBuilder
         'Prioritized Recommendations',
     ];
 
+    /** @param int $maxBytes Hard byte limit; production default is MAX_PROMPT_BYTES. */
+    public function __construct(private int $maxBytes = self::MAX_PROMPT_BYTES)
+    {
+        if ($maxBytes < 1) {
+            throw new \InvalidArgumentException('maxBytes must be a positive integer.');
+        }
+    }
+
     public function build(GitHubRepositoryMetadata $metadata, AnalysisReport $report): AIReviewRequest
     {
         return new AIReviewRequest($metadata, $report, $this->prompt($metadata, $report));
@@ -29,7 +46,8 @@ final class AIReviewPromptBuilder
 
     private function prompt(GitHubRepositoryMetadata $metadata, AnalysisReport $report): string
     {
-        return implode("\n", [
+        // Fixed head: instructions, data-block opener, metadata, scores, findings header.
+        $head = [
             ...$this->instructions(),
             '',
             self::DATA_START,
@@ -37,9 +55,42 @@ final class AIReviewPromptBuilder
             '',
             ...$this->reportLines($report),
             '',
-            ...$this->findingLines($report->findings),
-            self::DATA_END,
-        ]);
+            'DETERMINISTIC FINDINGS (authoritative, do not change)',
+        ];
+
+        $rows = $this->findingLines($report->findings);
+        $candidate = implode("\n", [...$head, ...$rows, '', self::DATA_END]);
+
+        if (strlen($candidate) <= $this->maxBytes) {
+            return $candidate;
+        }
+
+        // Over budget: reserve space for the truncation notice and the closing
+        // delimiter, then keep whole finding rows (in order) while they fit.
+        $suffix = "\n".implode("\n", ['', self::TRUNCATION_NOTICE, '', self::DATA_END]);
+        $budget = $this->maxBytes - strlen($suffix);
+        $prefix = implode("\n", $head);
+
+        if (strlen($prefix) > $budget) {
+            // Extreme limits: hard-cut on a UTF-8 boundary so the prompt stays valid.
+            return mb_strcut($prefix, 0, max(0, $budget)).$suffix;
+        }
+
+        $used = strlen($prefix);
+        $lines = $head;
+
+        foreach ($rows as $row) {
+            $added = strlen("\n") + strlen($row);
+
+            if ($used + $added > $budget) {
+                break;
+            }
+
+            $lines[] = $row;
+            $used += $added;
+        }
+
+        return implode("\n", $lines).$suffix;
     }
 
     /** @return list<string> */
@@ -102,7 +153,7 @@ final class AIReviewPromptBuilder
      */
     private function findingLines(array $findings): array
     {
-        $lines = ['DETERMINISTIC FINDINGS (authoritative, do not change)'];
+        $lines = [];
 
         foreach ($findings as $finding) {
             $lines[] = implode(' | ', [
@@ -121,13 +172,16 @@ final class AIReviewPromptBuilder
         return $lines;
     }
 
-    /** Strips block delimiters and newlines so repository content cannot escape the data block. */
+    /**
+     * Strips block delimiters and newlines so repository content cannot escape
+     * the data block, and caps each untrusted field on a UTF-8 boundary.
+     */
     private function clean(string $value): string
     {
-        return trim(str_replace(
+        return trim(mb_strcut(str_replace(
             [self::DATA_START, self::DATA_END, "\r", "\n"],
             ['[redacted]', '[redacted]', ' ', ' '],
             $value
-        ));
+        ), 0, self::MAX_FIELD_BYTES));
     }
 }

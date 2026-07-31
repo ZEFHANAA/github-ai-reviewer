@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\AI\AIReviewOutcome;
 use App\Analysis\AnalysisReport;
+use App\Support\SecretRedactor;
 use App\ValueObjects\GitHubRepositoryMetadata;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -20,6 +21,7 @@ final readonly class SafeAIReviewService
         private AIReviewService $service,
         private AIReviewResponseValidator $validator,
         private LoggerInterface $logger,
+        private SecretRedactor $redactor,
     ) {}
 
     public function review(GitHubRepositoryMetadata $metadata, AnalysisReport $report): AIReviewOutcome
@@ -29,9 +31,12 @@ final readonly class SafeAIReviewService
                 $this->validator->validate($this->service->review($metadata, $report))
             );
         } catch (Throwable $exception) {
+            // Never log the raw exception: messages and traces can carry credentials.
+            // Class + redacted message keeps failures debuggable without leaking secrets.
             $this->logger->warning('AI review failed; continuing with deterministic results only.', [
                 'repository' => $metadata->fullName,
-                'exception' => $exception,
+                'exception_class' => $exception::class,
+                'error' => $this->redactor->redact($exception->getMessage()),
             ]);
 
             return AIReviewOutcome::unavailable();

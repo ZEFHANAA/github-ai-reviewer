@@ -7,4 +7,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::post('/repositories', [RepositorySubmissionController::class, 'store'])->name('repositories.submit');
+Route::post('/repositories', [RepositorySubmissionController::class, 'store'])
+    ->middleware('throttle:repository-analysis')
+    ->name('repositories.submit');

@@ -15,6 +15,15 @@ use RuntimeException;
  */
 final class AIReviewProviderResolver
 {
+    /** Minimum allowed AI request timeout, in seconds. */
+    public const MIN_TIMEOUT = 5;
+
+    /** Maximum allowed AI request timeout, in seconds. */
+    public const MAX_TIMEOUT = 120;
+
+    /** Fallback timeout when the configured value is missing or invalid, in seconds. */
+    public const DEFAULT_TIMEOUT = 30;
+
     public static function resolve(array $config): AIReviewProviderInterface
     {
         $provider = (string) ($config['provider'] ?? 'fake');
@@ -27,13 +36,32 @@ final class AIReviewProviderResolver
         };
     }
 
+    /**
+     * Normalize the configured timeout into a safe integer in [MIN_TIMEOUT, MAX_TIMEOUT].
+     * Non-numeric, null, zero, or negative values fall back to DEFAULT_TIMEOUT.
+     */
+    public static function timeout(mixed $value): int
+    {
+        if ($value === null || ! is_numeric($value)) {
+            return self::DEFAULT_TIMEOUT;
+        }
+
+        $seconds = (int) $value;
+
+        if ($seconds < 1) {
+            return self::MIN_TIMEOUT;
+        }
+
+        return max(self::MIN_TIMEOUT, min($seconds, self::MAX_TIMEOUT));
+    }
+
     private static function openAICompatible(array $config): OpenAICompatibleReviewProvider
     {
         $baseUrl = $config['base_url'] ?? null;
         $key = $config['key'] ?? null;
         $model = $config['model'] ?? null;
         $endpoint = $config['endpoint'] ?? 'chat/completions';
-        $timeout = (int) ($config['timeout'] ?? 30);
+        $timeout = self::timeout($config['timeout'] ?? null);
 
         if (! is_string($baseUrl) || $baseUrl === '') {
             throw new RuntimeException('The AI provider base_url is not configured.');
@@ -54,6 +82,19 @@ final class AIReviewProviderResolver
             $key,
             $model,
             $timeout,
+            self::connectTimeout($timeout),
         );
+    }
+
+    /**
+     * Cap the connect phase at 10 seconds so a hung TCP handshake fails fast and
+     * never waits on the full request timeout: a dead host should surface as a
+     * quick connect error, while only slow-but-live HTTP responses consume the
+     * configured per-request budget. 10s is well within typical DNS + TCP + TLS
+     * setup time and keeps the effective connection floor bounded.
+     */
+    private static function connectTimeout(int $timeout): int
+    {
+        return min($timeout, 10);
     }
 }

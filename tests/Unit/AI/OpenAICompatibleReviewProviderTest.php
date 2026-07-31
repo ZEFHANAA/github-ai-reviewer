@@ -13,6 +13,7 @@ use App\Services\AI\Providers\FakeAIReviewProvider;
 use App\Services\AI\Providers\OpenAICompatibleResponseMapper;
 use App\Services\AI\Providers\OpenAICompatibleReviewProvider;
 use App\Services\AI\SafeAIReviewService;
+use App\Support\SecretRedactor;
 use App\ValueObjects\GitHubRepositoryMetadata;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -95,11 +96,30 @@ class OpenAICompatibleReviewProviderTest extends TestCase
             new AIReviewService($this->provider(), new AIReviewPromptBuilder),
             new AIReviewResponseValidator,
             new NullLogger,
+            new SecretRedactor,
         );
 
         $outcome = $service->review($this->metadata(), (new FinalScoreCalculator)->report([]));
 
         $this->assertFalse($outcome->isAvailable);
+    }
+
+    public function test_timeout_failure_returns_unavailable_without_changing_the_deterministic_report(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('Connection timed out.'));
+        $report = (new FinalScoreCalculator)->report([]);
+        $before = $report->toArray();
+        $service = new SafeAIReviewService(
+            new AIReviewService($this->provider(), new AIReviewPromptBuilder),
+            new AIReviewResponseValidator,
+            new NullLogger,
+            new SecretRedactor,
+        );
+
+        $outcome = $service->review($this->metadata(), $report);
+
+        $this->assertFalse($outcome->isAvailable);
+        $this->assertSame($before, $report->toArray());
     }
 
     public function test_the_container_resolves_the_provider_from_config(): void
@@ -132,6 +152,7 @@ class OpenAICompatibleReviewProviderTest extends TestCase
             key: 'test-key',
             model: 'test-model',
             timeout: 12,
+            connectTimeout: 10,
         );
     }
 

@@ -9,9 +9,17 @@
                 <p class="text-sm font-semibold text-indigo-200">GitHub repository</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">{{ $repository->fullName }}</h1>
                 <p class="mt-5 text-lg leading-8 text-slate-300">{{ $repository->description ?? 'No repository description is available.' }}</p>
-                <a href="{{ $repository->url }}" class="mt-6 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white" rel="noopener noreferrer" target="_blank">
-                    View on GitHub
-                </a>
+                @php
+                    $scheme = is_string($repository->url) ? parse_url($repository->url, PHP_URL_SCHEME) : null;
+                    $urlIsHttps = $scheme === 'https';
+                @endphp
+                @if ($urlIsHttps)
+                    <a href="{{ $repository->url }}" class="mt-6 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white" rel="noopener noreferrer" target="_blank">
+                        View on GitHub
+                    </a>
+                @else
+                    <span class="mt-6 inline-flex text-sm font-semibold text-slate-400">{{ $repository->url }}</span>
+                @endif
             </div>
 
             <div class="rounded-xl border border-indigo-300/20 bg-indigo-400/10 px-4 py-3 text-sm text-indigo-100">

@@ -98,6 +98,102 @@ class AIReviewPromptBuilderTest extends TestCase
         $this->assertSame(1, substr_count($prompt, AIReviewPromptBuilder::DATA_END));
     }
 
+    public function test_a_prompt_just_below_the_byte_limit_is_not_truncated(): void
+    {
+        $report = (new FinalScoreCalculator)->report($this->findings());
+        $baseline = (new AIReviewPromptBuilder)->build($this->metadata(), $report)->prompt;
+
+        $prompt = (new AIReviewPromptBuilder(strlen($baseline) + 1))->build($this->metadata(), $report)->prompt;
+
+        $this->assertSame($baseline, $prompt);
+        $this->assertStringNotContainsString(AIReviewPromptBuilder::TRUNCATION_NOTICE, $prompt);
+    }
+
+    public function test_a_prompt_exactly_at_the_byte_limit_is_not_truncated(): void
+    {
+        $report = (new FinalScoreCalculator)->report($this->findings());
+        $baseline = (new AIReviewPromptBuilder)->build($this->metadata(), $report)->prompt;
+
+        $prompt = (new AIReviewPromptBuilder(strlen($baseline)))->build($this->metadata(), $report)->prompt;
+
+        $this->assertSame($baseline, $prompt);
+        $this->assertSame(strlen($baseline), strlen($prompt));
+        $this->assertStringNotContainsString(AIReviewPromptBuilder::TRUNCATION_NOTICE, $prompt);
+    }
+
+    public function test_a_prompt_slightly_over_the_byte_limit_is_truncated_and_marked(): void
+    {
+        $report = (new FinalScoreCalculator)->report($this->findings());
+        $limit = strlen((new AIReviewPromptBuilder)->build($this->metadata(), $report)->prompt) - 1;
+
+        $prompt = (new AIReviewPromptBuilder($limit))->build($this->metadata(), $report)->prompt;
+
+        $this->assertLessThanOrEqual($limit, strlen($prompt));
+        $this->assertStringContainsString(AIReviewPromptBuilder::TRUNCATION_NOTICE, $prompt);
+        $this->assertStringContainsString(AIReviewPromptBuilder::DATA_START, $prompt);
+        $this->assertSame(1, substr_count($prompt, AIReviewPromptBuilder::DATA_END));
+    }
+
+    public function test_a_very_large_repository_still_produces_a_valid_bounded_prompt(): void
+    {
+        $findings = [];
+
+        for ($index = 0; $index < 500; $index++) {
+            $findings[] = new AnalysisFinding(
+                'DOC-README-'.$index,
+                RuleCategory::Documentation,
+                FindingStatus::Improvement,
+                FindingScope::Inspected,
+                FindingSeverity::Low,
+                str_repeat('title ', 50),
+                str_repeat('message ', 100),
+                str_repeat('evidence ', 100),
+                str_repeat('recommendation ', 100),
+            );
+        }
+
+        $prompt = (new AIReviewPromptBuilder)->build(
+            $this->metadata(['description' => str_repeat('déscription ', 5000)]),
+            (new FinalScoreCalculator)->report($findings)
+        )->prompt;
+
+        $this->assertLessThanOrEqual(AIReviewPromptBuilder::MAX_PROMPT_BYTES, strlen($prompt));
+        $this->assertTrue(mb_check_encoding($prompt, 'UTF-8'), 'Truncated prompt must remain valid UTF-8.');
+        $this->assertStringContainsString(AIReviewPromptBuilder::TRUNCATION_NOTICE, $prompt);
+        $this->assertStringContainsString(AIReviewPromptBuilder::DATA_START, $prompt);
+        $this->assertSame(1, substr_count($prompt, AIReviewPromptBuilder::DATA_END));
+        $this->assertStringContainsString('Prioritized Recommendations', $prompt);
+    }
+
+    public function test_truncation_never_splits_a_multibyte_character(): void
+    {
+        $report = (new FinalScoreCalculator)->report($this->findings());
+        $metadata = $this->metadata(['description' => str_repeat('日本語テキスト', 2000)]);
+
+        for ($limit = 900; $limit <= 960; $limit++) {
+            $prompt = (new AIReviewPromptBuilder($limit))->build($metadata, $report)->prompt;
+
+            $this->assertLessThanOrEqual($limit, strlen($prompt));
+            $this->assertTrue(mb_check_encoding($prompt, 'UTF-8'), "Prompt truncated at {$limit} bytes must stay valid UTF-8.");
+        }
+    }
+
+    public function test_truncation_is_deterministic_and_leaves_the_report_untouched(): void
+    {
+        $report = (new FinalScoreCalculator)->report($this->findings());
+        $before = $report->toArray();
+        $builder = new AIReviewPromptBuilder(700);
+        $metadata = $this->metadata(['description' => str_repeat('long ', 2000)]);
+
+        $first = $builder->build($metadata, $report)->prompt;
+        $second = $builder->build($metadata, $report)->prompt;
+
+        $this->assertSame($first, $second);
+        $this->assertSame($before, $report->toArray());
+        $this->assertSame($before['final_score'], $report->finalScore);
+        $this->assertSame($before['category_scores'], $report->categoryScores);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

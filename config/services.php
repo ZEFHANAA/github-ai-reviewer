@@ -12,7 +12,8 @@ return [
         'endpoint' => env('AI_ENDPOINT', 'chat/completions'),
         'model' => env('AI_MODEL'),
         'key' => env('AI_API_KEY'),
-        'timeout' => (int) env('AI_TIMEOUT', 30),
+        // Request timeout seconds. Valid range: 5–120; missing/non-numeric uses 30, values outside range clamp.
+        'timeout' => env('AI_TIMEOUT', 30),
     ],
 
     /*
