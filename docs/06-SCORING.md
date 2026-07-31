@@ -13,12 +13,12 @@ The MVP uses six categories:
 
   Category              Weight
   ------------------- --------
-  Documentation            20%
-  Testing                  20%
-  Security                 20%
+  Documentation            25%
+  Testing                  15%
+  Security Hygiene         25%
   Project Structure        15%
-  Code Quality             15%
-  Git Practices            10%
+  Code Quality             10%
+  Git Practices             10%
 
 Total: 100%.
 
@@ -26,11 +26,11 @@ Total: 100%.
 
 ``` text
 Overall Score =
-Documentation × 0.20
-+ Testing × 0.20
-+ Security × 0.20
+Documentation × 0.25
++ Testing × 0.15
++ Security Hygiene × 0.25
 + Project Structure × 0.15
-+ Code Quality × 0.15
++ Code Quality × 0.10
 + Git Practices × 0.10
 ```
 

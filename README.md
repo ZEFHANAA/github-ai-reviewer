@@ -1,212 +1,149 @@
 # GitHub AI Reviewer
 
-> AI-assisted GitHub repository health analyzer built with Laravel.
+AI-assisted GitHub repository health analyzer built with Laravel.
 
 [![Laravel](https://img.shields.io/badge/Laravel-13.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![Status](https://img.shields.io/badge/status-in%20development-yellow)](#project-status)
+[![Tests](https://img.shields.io/badge/tests-217%20passing-brightgreen)](#verification)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## Overview
+## What It Does
 
-GitHub AI Reviewer is a web application that analyzes public GitHub
-repositories and produces an explainable repository health report.
+Submit a public GitHub repository URL. The application retrieves bounded repository metadata and path information, runs deterministic checks, calculates explainable scores, and adds optional qualitative AI observations.
 
-The application combines deterministic, rule-based checks with
-AI-assisted review. Objective repository characteristics are evaluated
-by the application's analysis engine, while AI is used primarily to
-explain findings and provide actionable recommendations.
+Deterministic analysis owns scores and findings. AI explains selected findings and suggests improvements; it cannot change deterministic scores or findings. AI failure falls back to the deterministic report.
 
-The project is currently under active development.
+## Current Features
 
-## Planned MVP Features
+- Canonical HTTPS GitHub repository URL validation
+- GitHub metadata and bounded Contents API collection
+- Request and directory-entry limits
+- Documentation, testing, security hygiene, project structure, Git-practice, and code-quality checks
+- Typed findings with category, status, scope, severity, evidence, recommendation, and source
+- Category scores plus weighted overall score
+- Severity/status/category finding filters
+- Optional AI review through fake or OpenAI-compatible providers
+- AI response validation, timeout policy, prompt-size limits, and failure isolation
+- Analysis persistence in SQLite
+- Friendly invalid URL, GitHub failure, rate-limit, and AI-unavailable states
+- Secret redaction before provider failures reach logs
 
--   Analyze public GitHub repositories from a repository URL
--   Retrieve repository metadata through the GitHub REST API
--   Analyze documentation quality
--   Detect testing-related indicators
--   Evaluate project structure
--   Perform basic repository security hygiene checks
--   Evaluate Git practices
--   Perform basic code-quality analysis
--   Generate explainable category scores
--   Generate an overall repository health score
--   Provide AI-assisted findings and recommendations
--   Store analysis history
--   Display findings by severity and source
+## Score Weights
 
-## Repository Health Categories
+| Category | Weight |
+| --- | ---: |
+| Documentation | 25% |
+| Testing | 15% |
+| Security Hygiene | 25% |
+| Project Structure | 15% |
+| Git Practices | 10% |
+| Code Quality | 10% |
 
-The MVP evaluates six categories:
+Scores use deterministic rules and are normalized to a 0-100 range. They describe repository-health indicators, not developer ability or a professional security audit.
 
-  Category              Weight
-  ------------------- --------
-  Documentation            20%
-  Testing                  20%
-  Security                 20%
-  Project Structure        15%
-  Code Quality             15%
-  Git Practices            10%
+## Architecture
 
-The scoring model is intended as an explainable repository-health
-heuristic, not an absolute measurement of developer ability or software
-quality.
-
-## Tech Stack
-
-  Component                Technology
-  ------------------------ -----------------------------------------
-  Backend                  Laravel 13
-  Language                 PHP 8.3+
-  Frontend                 Blade + Tailwind CSS
-  Development Database     SQLite
-  Repository Integration   GitHub REST API
-  AI Integration           API-based LLM with provider abstraction
-  Version Control          Git + GitHub
-
-SQLite is used for local development. The production database and AI
-provider will be selected later based on deployment requirements.
-
-## High-Level Architecture
-
-``` text
-User
+```text
+Browser
   |
   v
-Laravel Application
+Laravel route/controller
   |
-  +---- GitHub REST API
+  +--> GitHubRepositoryService --> RepositorySnapshot
+  |                                   |
+  |                                   v
+  +--> Deterministic analyzer --> typed findings --> scoring
+  |                                                   |
+  +--> Safe AI review (optional) --------------------+
   |
-  +---- Repository Analysis Engine
-  |       |
-  |       +---- Documentation Analyzer
-  |       +---- Testing Analyzer
-  |       +---- Security Analyzer
-  |       +---- Project Structure Analyzer
-  |       +---- Code Quality Analyzer
-  |       +---- Git Practices Analyzer
-  |
-  +---- Scoring Engine
-  |
-  +---- AI Review Service
-  |
-  +---- Database
-  |
-  v
-Repository Health Report
+  +--> persistence --> Blade report
 ```
 
-The MVP is designed as a modular Laravel monolith. More complex
-infrastructure such as Redis, queues, dedicated workers, or separate
-analysis services will only be introduced when justified by application
-requirements.
+The full diagram is in [`docs/architecture.svg`](docs/architecture.svg). Engineering details live in [`docs/04-ARCHITECTURE.md`](docs/04-ARCHITECTURE.md).
 
-## Documentation
+## Requirements
 
-Detailed engineering documentation is available in [`docs/`](docs/):
+- PHP 8.3+
+- Composer
+- Node.js and npm
+- SQLite with the PHP SQLite extension
 
--   [Problem Definition](docs/01-PROBLEM.md)
--   [Research & Feasibility](docs/02-RESEARCH.md)
--   [Product Requirements Document](docs/03-PRD.md)
--   [System Architecture](docs/04-ARCHITECTURE.md)
--   [Database Design](docs/05-DATABASE.md)
--   [Scoring Specification](docs/06-SCORING.md)
--   [Development Roadmap](docs/07-ROADMAP.md)
+## Installation
 
-## Project Status
-
-  Phase                                  Status
-  -------------------------------------- -------------
-  Planning & Engineering Documentation   Completed
-  Project Foundation                     Completed
-  Repository Input & URL Validation      Completed
-  GitHub Integration                     Completed
-  Repository Analysis Engine             Planned
-  Scoring Engine                         Planned
-  AI Review                              Planned
-  Report UI                              Planned
-  Testing & Hardening                    Planned
-  Public Deployment                      Planned
-
-## MVP Scope
-
-Version 1 focuses on analyzing **public GitHub repositories**.
-
-The following features are intentionally outside the initial MVP:
-
--   Private repository analysis
--   GitHub OAuth
--   Pull Request review
--   Automatic code modification
--   Automatic Pull Request creation
--   Team collaboration
--   Organization-wide monitoring
--   IDE extensions
-
-These capabilities may be considered in later versions.
-
-## Security and AI Disclaimer
-
-GitHub AI Reviewer is intended to provide repository-health guidance.
-
-Security-related findings may indicate potential issues but **must not
-be treated as a professional security audit or proof of a
-vulnerability**.
-
-AI-generated observations are probabilistic and will be distinguished
-from deterministic findings wherever possible.
-
-Repository content is treated as untrusted input and should never be
-interpreted as instructions by the AI analysis pipeline.
-
-## Local Development
-
-The project is currently under development. Complete installation
-instructions will be added as the application foundation stabilizes.
-
-Current requirements include:
-
--   PHP 8.3+
--   Composer
--   Node.js
--   npm
--   SQLite
-
-For the current Laravel development server:
-
-``` bash
+```bash
+git clone https://github.com/ZEFHANAA/github-ai-reviewer.git
+cd github-ai-reviewer
 composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate
 npm install
+npm run build
 php artisan serve
 ```
 
-Environment configuration and complete setup instructions will be
-documented before the first public release.
+Open `http://127.0.0.1:8000`.
 
-### Optional GitHub API token
+For frontend development with hot reload:
 
-The application can retrieve public repository metadata without a token,
-subject to GitHub's unauthenticated API rate limits. To use a higher
-server-side rate limit, set `GITHUB_TOKEN` in your local environment.
-Never expose this token to the browser or commit it to source control.
+```bash
+npm run dev
+```
 
-## Roadmap
+Do not commit `.env`, API keys, tokens, or generated local database files.
 
-Development is organized into the following stages:
+## Configuration
 
-1.  Project foundation
-2.  Repository input and URL validation
-3.  GitHub REST API integration
-4.  Deterministic repository analysis
-5.  Explainable scoring engine
-6.  Analysis persistence
-7.  AI-assisted review
-8.  Repository report interface
-9.  Testing and security hardening
-10. Portfolio preparation
-11. Public deployment
+`.env.example` contains safe defaults.
 
-See the full [Development Roadmap](docs/07-ROADMAP.md) for details.
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `GITHUB_TOKEN` | Optional server-side GitHub API token | empty |
+| `AI_PROVIDER` | `fake` or configured OpenAI-compatible provider | `fake` |
+| `AI_BASE_URL` | OpenAI-compatible base URL | empty |
+| `AI_ENDPOINT` | Provider endpoint | `chat/completions` |
+| `AI_MODEL` | Provider model name | empty |
+| `AI_API_KEY` | Server-side provider key | empty |
+| `AI_TIMEOUT` | Request timeout, clamped to 5-120 seconds | `30` |
+
+Fake provider mode avoids network AI calls and produces deterministic demo output.
+
+## Verification
+
+```bash
+php artisan test
+vendor/bin/pint --test
+npm run build
+git diff --check
+```
+
+Current baseline: **217 tests passed, 957 assertions**.
+
+## Security Boundary
+
+- Only public GitHub repositories are supported.
+- Repository content is untrusted input and is isolated before AI review.
+- AI output is validated and rendered with escaped Blade output.
+- Provider and GitHub credentials stay server-side and are redacted from failure logs.
+- Rate limiting protects repository-analysis submissions.
+- This tool is not a professional security audit and does not prove vulnerabilities or safety.
+
+## Portfolio Materials
+
+- [Feature documentation](docs/08-FEATURES.md)
+- [Known limitations](docs/09-KNOWN-LIMITATIONS.md)
+- [Demo report](docs/10-DEMO-REPORT.md)
+- [Architecture diagram](docs/architecture.svg)
+- [Development roadmap](docs/07-ROADMAP.md)
+- [Engineering documentation](docs/)
+
+Reproducible local screenshots using the fake AI provider are documented in [the demo walkthrough](docs/10-DEMO-REPORT.md).
+
+## Project Status
+
+Phases 1-10 are complete. Phase 11, public deployment, has not started. There is no public demo deployment claim.
 
 ## License
 
-A project license will be selected before the first public release.
+MIT. See [`LICENSE`](LICENSE).
