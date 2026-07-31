@@ -5,12 +5,16 @@ namespace Tests\Feature;
 use App\AI\AIReviewRequest;
 use App\AI\AIReviewResponse;
 use App\Contracts\AIReviewProviderInterface;
+use App\Models\Analysis;
 use Exception;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class RepositorySubmissionTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_a_valid_repository_url_displays_normalized_github_metadata(): void
     {
         Http::fake([
@@ -176,6 +180,21 @@ class RepositorySubmissionTest extends TestCase
             ->assertSee('Category Scores')
             ->assertSee('Repository checks')
             ->assertSee('laravel/laravel');
+    }
+
+    public function test_submitting_a_repository_persists_the_analysis_and_exposes_the_record_in_the_view(): void
+    {
+        $this->fakeGitHub();
+
+        $response = $this->post(route('repositories.submit'), [
+            'repository_url' => 'https://github.com/laravel/laravel',
+        ]);
+
+        $analysis = Analysis::with('repository', 'findings')->firstOrFail();
+        $this->assertDatabaseCount('repositories', 1);
+        $this->assertSame('laravel', $analysis->repository->owner);
+        $this->assertNotEmpty($analysis->findings);
+        $response->assertOk()->assertSee('data-analysis-id="'.$analysis->id.'"', false);
     }
 
     private function fakeGitHub(): void

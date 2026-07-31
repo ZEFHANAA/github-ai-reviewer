@@ -3,7 +3,7 @@
 @section('title', $repository->fullName)
 
 @section('content')
-    <section class="mx-auto max-w-6xl px-6 py-16 sm:py-24 lg:px-8">
+    <section class="mx-auto max-w-6xl px-6 py-16 sm:py-24 lg:px-8" @if(isset($analysis)) data-analysis-id="{{ $analysis->id }}" @endif>
         <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
             <div class="max-w-3xl">
                 <p class="text-sm font-semibold text-indigo-200">GitHub repository</p>
