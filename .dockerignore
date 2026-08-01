@@ -1,0 +1,44 @@
+.git
+node_modules
+vendor
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+tests
+.env
+.env.*
+!.env.example
+*.log
+.phpunit.cache
+.phpunit.result.cache
+.DS_Store
+Thumbs.db
+
+# Build context does not need local editor or agent settings.
+.codex
+.cursor
+.hermes
+.idea
+.nova
+.vscode
+.zed
+
+# Git ignores these generated Laravel files too.
+public/build
+public/hot
+public/storage
+storage/*.key
+storage/pail
+
+# Docker controls its own build inputs.
+Dockerfile
+.dockerignore
+render.yaml
+README.md
+docs
+LICENSE
+Homestead.json
+Homestead.yaml
+_ide_helper.php
+auth.json
