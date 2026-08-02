@@ -22,8 +22,13 @@
                 @endif
             </div>
 
-            <div class="rounded-xl border border-indigo-300/20 bg-indigo-400/10 px-4 py-3 text-sm text-indigo-100">
-                Metadata retrieved from GitHub
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="rounded-xl border border-indigo-300/20 bg-indigo-400/10 px-4 py-3 text-sm text-indigo-100">
+                    Metadata retrieved from GitHub
+                </div>
+                <a href="{{ route('home') }}" class="inline-flex rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                    Analyze another repository
+                </a>
             </div>
         </div>
 
@@ -81,7 +86,14 @@
                                 <span class="text-white">{{ $categoryName }}</span>
                                 <span class="font-bold text-indigo-200">{{ $catScore }}%</span>
                             </div>
-                            <div class="mt-2 h-2.5 w-full rounded-full bg-slate-800">
+                            <div
+                                class="mt-2 h-2.5 w-full rounded-full bg-slate-800"
+                                role="progressbar"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                aria-valuenow="{{ (int) $catScore }}"
+                                aria-label="{{ $categoryName }} score {{ (int) $catScore }} out of 100"
+                            >
                                 <div class="h-2.5 rounded-full {{ $catScore >= 80 ? 'bg-emerald-400' : ($catScore >= 60 ? 'bg-amber-400' : 'bg-rose-400') }}" style="width: {{ max($catScore, 4) }}%"></div>
                             </div>
                         </div>
@@ -89,6 +101,40 @@
                 </div>
             </div>
         </div>
+
+        @php
+            // Priority actions are deterministic improvements only.
+            // The AI never computes or reorders these; it only explains them below.
+            $priorityActions = collect($findings)
+                ->filter(fn ($finding) => $finding->status->value === 'improvement' && $finding->recommendation)
+                ->sortBy(fn ($finding) => match ($finding->severity->value) {
+                    'high' => 0,
+                    'medium' => 1,
+                    'low' => 2,
+                    default => 3,
+                })
+                ->values();
+        @endphp
+
+        @if ($priorityActions->isNotEmpty())
+            <section class="mt-12" data-priority-actions>
+                <p class="text-sm font-semibold text-indigo-200">Action plan</p>
+                <h2 class="mt-2 text-2xl font-semibold text-white">Start with these deterministic improvements</h2>
+                <p class="mt-2 text-sm text-slate-400">Ordered by severity from the deterministic checks above. Each item references the same finding shown below.</p>
+                <ol class="mt-6 space-y-3">
+                    @foreach ($priorityActions as $index => $finding)
+                        <li class="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <span class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-indigo-400/15 text-xs font-bold text-indigo-200" aria-hidden="true">{{ $index + 1 }}</span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-white">{{ $finding->title }}</p>
+                                <p class="mt-1 text-xs text-indigo-200">{{ $finding->recommendation }}</p>
+                                <p class="mt-2 text-xs text-slate-500">{{ $finding->ruleIdentifier }} · {{ $finding->category->value }} · Source: deterministic check</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ol>
+            </section>
+        @endif
 
         <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <x-repositories.stat label="Stars" :value="number_format($repository->starsCount)" />
@@ -184,9 +230,18 @@
             </div>
             <h2 class="mt-2 text-2xl font-semibold text-white">Qualitative review</h2>
             <p class="mt-2 text-sm text-slate-400">Optional AI enrichment. Deterministic scores and findings above remain authoritative and unchanged.</p>
+            @php
+                // Presentation only: AI content remains validated read-only enrichment.
+                $aiSections = collect($aiReview->sections)
+                    ->sortBy(fn (array $section) => $section['title'] === 'Prioritized Recommendations' ? 0 : 1)
+                    ->values();
+            @endphp
             <div class="mt-6 grid gap-6 lg:grid-cols-2">
-                @foreach ($aiReview->sections as $section)
-                    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+                @foreach ($aiSections as $section)
+                    <div @class([
+                        'rounded-2xl border border-white/10 bg-white/5 p-6',
+                        'lg:col-span-2 border-indigo-300/20 bg-indigo-400/10' => $section['title'] === 'Prioritized Recommendations',
+                    ])>
                         <h3 class="font-semibold text-white">{{ $section['title'] }}</h3>
                         <ul class="mt-3 space-y-3">
                             @foreach ($section['entries'] as $entry)
