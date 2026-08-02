@@ -35,6 +35,8 @@ class RepositorySubmissionController extends Controller
         } catch (GitHubRepositoryException $exception) {
             return response()->view('repositories.error', [
                 'message' => $exception->getMessage(),
+                'status' => $exception->status(),
+                'submittedUrl' => $request->repository()->canonicalUrl,
             ], $exception->status());
         }
     }

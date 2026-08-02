@@ -8,16 +8,16 @@
     <section class="mx-auto max-w-6xl px-6 py-20 sm:py-28 lg:px-8 lg:py-36">
         <div class="max-w-3xl">
             <p class="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200">
-                <span class="size-2 rounded-full bg-emerald-300"></span>
-                Currently in development
+                <span class="size-2 rounded-full bg-emerald-300" aria-hidden="true"></span>
+                Deterministic checks. Practical guidance.
             </p>
 
             <h1 class="text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl">
-                Repository health, made clear.
+                Analyze a public GitHub repository with confidence.
             </h1>
 
             <p class="mt-7 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
-                {{ config('app.name') }} will help developers understand the strengths and improvement opportunities in public GitHub repositories—through transparent checks and practical, AI-assisted guidance.
+                {{ config('app.name') }} turns bounded repository signals into an explainable health report. Deterministic checks own scores; optional AI only clarifies what to improve next.
             </p>
         </div>
 
@@ -45,7 +45,7 @@
             <h2 class="text-xl font-semibold text-white">Start with a public GitHub repository</h2>
             <p class="mt-2 text-sm leading-6 text-indigo-100">Enter a canonical repository page URL. We will validate it before repository analysis is available.</p>
 
-            <form action="{{ route('repositories.submit') }}" method="POST" class="mt-6">
+            <form action="{{ route('repositories.submit') }}" method="POST" class="mt-6" data-analyze-form>
                 @csrf
 
                 <label for="repository_url" class="text-sm font-medium text-white">GitHub repository URL</label>
@@ -65,11 +65,17 @@
                             'border-white/15 focus:border-indigo-400 focus:ring-indigo-400/30' => ! $errors->has('repository_url'),
                         ])
                     >
-                    <button type="submit" class="inline-flex justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-white/60">
+                    <button
+                        type="submit"
+                        data-analyze-submit
+                        data-loading-label="Analyzing…"
+                        class="inline-flex justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
                         Analyze Repository
                     </button>
                 </div>
                 <p id="repository_url_help" class="mt-2 text-sm text-indigo-100/80">Example: https://github.com/laravel/laravel</p>
+                <p data-analyze-status role="status" aria-live="polite" class="mt-2 min-h-5 text-sm text-indigo-100/80"></p>
                 @error('repository_url')
                     <p id="repository_url_error" class="mt-2 text-sm font-medium text-rose-200">{{ $message }}</p>
                 @enderror

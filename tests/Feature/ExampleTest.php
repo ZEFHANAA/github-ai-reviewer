@@ -17,8 +17,8 @@ class ExampleTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('GitHub AI Reviewer')
-            ->assertSee('Repository health, made clear.')
-            ->assertSee('Currently in development')
+            ->assertSee('Analyze a public GitHub repository with confidence.')
+            ->assertSee('Deterministic checks. Practical guidance.')
             ->assertSee('Analyze Repository')
             ->assertSee('https://github.com/laravel/laravel');
     }

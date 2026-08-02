@@ -40,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
             ->by($request->ip())
             ->response(fn (): Response => response()->view('repositories.error', [
                 'message' => 'Too many repository analyses. Please try again in a minute.',
+                'status' => 429,
+                'submittedUrl' => null,
             ], 429)));
     }
 }

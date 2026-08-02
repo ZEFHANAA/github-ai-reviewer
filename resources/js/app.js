@@ -4,6 +4,22 @@
 // category/severity/status values. When no card is visible, shows the
 // empty state. No state manager, no abstraction.
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-analyze-form]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            const submit = form.querySelector('[data-analyze-submit]');
+            const status = form.querySelector('[data-analyze-status]');
+
+            if (submit instanceof HTMLButtonElement) {
+                submit.disabled = true;
+                submit.textContent = submit.dataset.loadingLabel || 'Analyzing…';
+            }
+
+            if (status) {
+                status.textContent = 'Fetching repository signals and preparing your report…';
+            }
+        });
+    });
+
     const container = document.querySelector('[data-repository-filters]');
 
     if (!container) {
