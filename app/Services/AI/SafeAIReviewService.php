@@ -3,6 +3,7 @@
 namespace App\Services\AI;
 
 use App\AI\AIReviewOutcome;
+use App\Analysis\AnalysisFinding;
 use App\Analysis\AnalysisReport;
 use App\Support\SecretRedactor;
 use App\ValueObjects\GitHubRepositoryMetadata;
@@ -27,8 +28,14 @@ final readonly class SafeAIReviewService
     public function review(GitHubRepositoryMetadata $metadata, AnalysisReport $report): AIReviewOutcome
     {
         try {
+            $validated = $this->validator->validate($this->service->review($metadata, $report));
+            $ruleIds = array_map(
+                fn (AnalysisFinding $finding): string => $finding->ruleIdentifier,
+                $report->findings
+            );
+
             return AIReviewOutcome::available(
-                $this->validator->validate($this->service->review($metadata, $report))
+                $this->validator->validateReferences($validated, array_values($ruleIds))
             );
         } catch (Throwable $exception) {
             // Never log the raw exception: messages and traces can carry credentials.

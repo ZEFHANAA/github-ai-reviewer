@@ -29,7 +29,9 @@
         </select>
     </div>
 
-    <button type="button" data-filter-clear class="inline-flex justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40">
+    <button type="button" data-filter-clear class="inline-flex justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
         Clear filters
     </button>
+
+    <p data-filter-status role="status" aria-live="polite" class="min-h-5 text-sm text-slate-400"></p>
 </div>

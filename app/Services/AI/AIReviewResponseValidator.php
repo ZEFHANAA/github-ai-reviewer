@@ -34,6 +34,44 @@ final class AIReviewResponseValidator
         );
     }
 
+    /**
+     * Accept AI prose only when every rendered entry starts with a rule ID from
+     * the authoritative deterministic report. This prevents invented findings
+     * while preserving AI's role: explaining already-known deterministic data.
+     *
+     * @param  list<string>  $allowedRuleIds
+     */
+    public function validateReferences(AIReviewResponse $response, array $allowedRuleIds): AIReviewResponse
+    {
+        $allowed = array_fill_keys($allowedRuleIds, true);
+        $this->validateReference($response->repositorySummary, 'repository_summary', $allowed);
+
+        foreach ([
+            'documentation_observations' => $response->documentationObservations,
+            'maintainability_observations' => $response->maintainabilityObservations,
+            'potential_concerns' => $response->potentialConcerns,
+            'prioritized_recommendations' => $response->prioritizedRecommendations,
+        ] as $field => $entries) {
+            foreach ($entries as $entry) {
+                $this->validateReference($entry, $field, $allowed);
+            }
+        }
+
+        return $response;
+    }
+
+    /** @param array<string, true> $allowed */
+    private function validateReference(string $entry, string $field, array $allowed): void
+    {
+        if (! preg_match('/^\[([A-Z]+-[A-Z]+-\d+)\]\s+/', $entry, $matches)) {
+            $this->fail("{$field} must begin with a deterministic rule ID in brackets.");
+        }
+
+        if (! isset($allowed[$matches[1]])) {
+            $this->fail("{$field} references an unknown deterministic rule ID.");
+        }
+    }
+
     /** @return list<string> */
     private function cleanList(array $entries, string $field): array
     {

@@ -28,7 +28,7 @@ class SafeAIReviewServiceTest extends TestCase
 {
     public function test_a_valid_provider_response_produces_an_available_outcome(): void
     {
-        $response = new AIReviewResponse('Summary.', ['Docs.'], ['Maintainable.'], ['Concern.'], ['Recommendation.']);
+        $response = new AIReviewResponse('[DOC-README-001] Summary.', ['[DOC-README-001] Docs.'], [], [], ['[DOC-README-001] Recommendation.']);
         $outcome = $this->safe($this->providerReturning($response))->review($this->metadata(), $this->report());
 
         $this->assertTrue($outcome->isAvailable);
@@ -117,6 +117,35 @@ class SafeAIReviewServiceTest extends TestCase
         $this->assertFalse($unavailable->isAvailable);
         $this->assertNull($unavailable->response);
         $this->assertSame('AI review is temporarily unavailable.', $unavailable->failureReason);
+    }
+
+    public function test_a_provider_response_referencing_an_unknown_rule_is_isolated(): void
+    {
+        $outcome = $this->safe($this->providerReturning(new AIReviewResponse(
+            '[DOC-README-001] Summary',
+            ['[DOC-LICENSE-999] Unknown finding.'],
+            [],
+            [],
+            [],
+        )))->review($this->metadata(), $this->report());
+
+        $this->assertFalse($outcome->isAvailable);
+        $this->assertNull($outcome->response);
+        $this->assertSame('AI review is temporarily unavailable.', $outcome->failureReason);
+    }
+
+    public function test_a_provider_response_without_rule_references_is_isolated(): void
+    {
+        $outcome = $this->safe($this->providerReturning(new AIReviewResponse(
+            'Summary without a rule ID.',
+            ['Concern without a rule ID.'],
+            [],
+            [],
+            [],
+        )))->review($this->metadata(), $this->report());
+
+        $this->assertFalse($outcome->isAvailable);
+        $this->assertNull($outcome->response);
     }
 
     public function test_outcome_exposes_view_data_without_provider_logic_in_the_view(): void

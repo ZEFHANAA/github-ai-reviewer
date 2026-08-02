@@ -81,20 +81,23 @@
                 <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-200">Category Scores</h3>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($report->categoryScores as $categoryName => $catScore)
+                        @php
+                            $displayScore = min(100, max(0, (int) $catScore));
+                        @endphp
                         <div class="rounded-xl border border-white/10 bg-white/5 p-4">
                             <div class="flex items-center justify-between text-sm font-medium">
                                 <span class="text-white">{{ $categoryName }}</span>
-                                <span class="font-bold text-indigo-200">{{ $catScore }}%</span>
+                                <span class="font-bold text-indigo-200">{{ $displayScore }}%</span>
                             </div>
                             <div
                                 class="mt-2 h-2.5 w-full rounded-full bg-slate-800"
                                 role="progressbar"
                                 aria-valuemin="0"
                                 aria-valuemax="100"
-                                aria-valuenow="{{ (int) $catScore }}"
-                                aria-label="{{ $categoryName }} score {{ (int) $catScore }} out of 100"
+                                aria-valuenow="{{ $displayScore }}"
+                                aria-label="{{ $categoryName }} score {{ $displayScore }} out of 100"
                             >
-                                <div class="h-2.5 rounded-full {{ $catScore >= 80 ? 'bg-emerald-400' : ($catScore >= 60 ? 'bg-amber-400' : 'bg-rose-400') }}" style="width: {{ max($catScore, 4) }}%"></div>
+                                <div class="h-2.5 rounded-full {{ $displayScore >= 80 ? 'bg-emerald-400' : ($displayScore >= 60 ? 'bg-amber-400' : 'bg-rose-400') }}" style="width: {{ max($displayScore, 4) }}%"></div>
                             </div>
                         </div>
                     @endforeach
@@ -245,7 +248,12 @@
                         <h3 class="font-semibold text-white">{{ $section['title'] }}</h3>
                         <ul class="mt-3 space-y-3">
                             @foreach ($section['entries'] as $entry)
-                                <li class="text-sm leading-6 text-slate-300">{{ $entry }}</li>
+                                @php
+                                    // Strip the leading [RULE-ID] that AI validation requires.
+                                    // Deterministic findings below display full rule IDs.
+                                    $cleaned = preg_replace('/^\[[A-Z]+-[A-Z]+-\d+\]\s+/', '', $entry);
+                                @endphp
+                                <li class="text-sm leading-6 text-slate-300">{{ $cleaned }}</li>
                             @endforeach
                         </ul>
                     </div>

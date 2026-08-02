@@ -161,19 +161,21 @@ class RepositorySubmissionTest extends TestCase
         return json_decode($contents ?: '', true, 512, JSON_THROW_ON_ERROR);
     }
 
-    public function test_the_report_displays_ai_enrichment_when_the_provider_succeeds(): void
+    public function test_the_report_displays_ai_enrichment_with_stripped_rule_references(): void
     {
         $this->fakeGitHub();
         $this->swap(AIReviewProviderInterface::class, new class implements AIReviewProviderInterface
         {
             public function review(AIReviewRequest $request): AIReviewResponse
             {
+                $rule = '[DOC-README-001] ';
+
                 return new AIReviewResponse(
-                    'A mature framework skeleton with strong documentation.',
-                    ['The README explains installation clearly.'],
-                    ['Tests directory is present and organised.'],
-                    ['Dependency updates are not automated.'],
-                    ['Enable Dependabot for dependency updates.'],
+                    $rule.'A mature framework skeleton with strong documentation.',
+                    [$rule.'The README explains installation clearly.'],
+                    [$rule.'Tests directory is present and organised.'],
+                    [$rule.'Dependency updates are not automated.'],
+                    [$rule.'Enable Dependabot for dependency updates.'],
                 );
             }
         });

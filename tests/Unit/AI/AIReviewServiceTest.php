@@ -96,8 +96,10 @@ class AIReviewServiceTest extends TestCase
         $serialized = json_encode($response->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
         $this->assertStringContainsString('laravel/laravel', $serialized);
-        $this->assertStringContainsString('SEC-ENV-001', $serialized);
-        $this->assertStringNotContainsString('DOC-README-001', $serialized);
+        $this->assertStringContainsString('[SEC-ENV-001]', $serialized);
+        $this->assertStringContainsString('[DOC-README-001]', $serialized);
+        $this->assertStringNotContainsString('final_score', $serialized);
+        $this->assertStringNotContainsString('category_scores', $serialized);
     }
 
     public function test_the_service_is_resolvable_from_the_container(): void

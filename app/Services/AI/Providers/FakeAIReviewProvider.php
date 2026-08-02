@@ -9,8 +9,9 @@ use App\Contracts\AIReviewProviderInterface;
 use App\ValueObjects\GitHubRepositoryMetadata;
 
 /**
- * Deterministic stand-in used until a real AI provider is wired in (Phase 7B+).
- * Produces stable output for unit tests; never calls a network.
+ * Deterministic stand-in provider. Never calls a network and derives every
+ * emitted string only from the authoritative deterministic report, so the
+ * output always begins with a real rule ID (contract: SafeAIReviewService).
  */
 final class FakeAIReviewProvider implements AIReviewProviderInterface
 {
@@ -19,16 +20,34 @@ final class FakeAIReviewProvider implements AIReviewProviderInterface
         $metadata = $request->metadata;
         $report = $request->report;
 
-        $summary = $metadata->fullName.' is a '.$metadata->primaryLanguage.' repository with '.($metadata->starsCount).' stars.';
-
         [$documentation, $concerns] = $this->documentationAndConcerns($report->findings);
 
         return new AIReviewResponse(
-            repositorySummary: $summary,
+            repositorySummary: $this->summary($report->findings, $metadata),
             documentationObservations: $documentation,
-            maintainabilityObservations: $this->maintainability($report->findings),
+            maintainabilityObservations: $this->maintainability($report->findings, $metadata),
             potentialConcerns: $concerns,
             prioritizedRecommendations: $this->recommendations($report->findings, $metadata),
+        );
+    }
+
+    /**
+     * @param  array<int, AnalysisFinding>  $findings
+     */
+    private function summary(array $findings, GitHubRepositoryMetadata $metadata): string
+    {
+        if ($findings === []) {
+            return '[STRUCT-MANIFEST-001] No deterministic checks are available for this repository.';
+        }
+
+        $first = $findings[0];
+
+        return sprintf(
+            '%s %s covers %d deterministic checks. %s',
+            $this->reference($first),
+            $metadata->fullName,
+            count($findings),
+            'The scores and findings above remain authoritative.'
         );
     }
 
@@ -47,18 +66,18 @@ final class FakeAIReviewProvider implements AIReviewProviderInterface
             }
 
             if ($finding->category->value === 'Documentation') {
-                $documentation[] = $finding->ruleIdentifier.': '.$finding->title.' — '.$finding->message;
+                $documentation[] = $this->reference($finding).$finding->title.' — '.$finding->message;
             }
 
-            $concerns[] = $finding->ruleIdentifier.': '.$finding->title.' — '.$finding->message;
+            $concerns[] = $this->reference($finding).$finding->title.' — '.$finding->message;
         }
 
         if ($documentation === []) {
-            $documentation[] = 'No documentation findings to report.';
+            $documentation[] = $this->fallback($findings, 'No documentation improvements were flagged by the deterministic checks.');
         }
 
         if ($concerns === []) {
-            $concerns[] = 'No concerns flagged by deterministic checks.';
+            $concerns[] = $this->fallback($findings, 'No concerns were flagged by the deterministic checks.');
         }
 
         return [$documentation, $concerns];
@@ -68,18 +87,18 @@ final class FakeAIReviewProvider implements AIReviewProviderInterface
      * @param  array<int, AnalysisFinding>  $findings
      * @return list<string>
      */
-    private function maintainability(array $findings): array
+    private function maintainability(array $findings, GitHubRepositoryMetadata $metadata): array
     {
         $notes = [];
 
         foreach ($findings as $finding) {
             if ($finding->status->value === 'unknown') {
-                $notes[] = $finding->ruleIdentifier.': '.$finding->title.' — could not be inspected: '.$finding->message;
+                $notes[] = $this->reference($finding).$finding->title.' — could not be inspected: '.$finding->message;
             }
         }
 
         if ($notes === []) {
-            $notes[] = 'All inspected checks produced a verdict.';
+            $notes[] = $this->fallback($findings, 'All inspected checks produced a verdict for '.$metadata->fullName.'.');
         }
 
         return $notes;
@@ -95,14 +114,32 @@ final class FakeAIReviewProvider implements AIReviewProviderInterface
 
         foreach ($findings as $finding) {
             if ($finding->status->value === 'improvement' && $finding->recommendation !== null && $finding->recommendation !== '') {
-                $recommendations[] = $finding->ruleIdentifier.': '.$finding->recommendation;
+                $recommendations[] = $this->reference($finding).$finding->recommendation;
             }
         }
 
         if ($recommendations === []) {
-            $recommendations[] = 'No deterministic improvements pending for '.$metadata->fullName.'.';
+            $recommendations[] = $this->fallback($findings, 'No deterministic improvements are pending for '.$metadata->fullName.'.');
         }
 
         return $recommendations;
+    }
+
+    private function reference(AnalysisFinding $finding): string
+    {
+        return '['.$finding->ruleIdentifier.'] ';
+    }
+
+    /**
+     * Choose a valid rule ID to anchor fallback prose so every emitted string
+     * still satisfies the deterministic-rule-reference contract.
+     *
+     * @param  array<int, AnalysisFinding>  $findings
+     */
+    private function fallback(array $findings, string $message): string
+    {
+        $ruleId = $findings === [] ? 'STRUCT-MANIFEST-001' : $findings[0]->ruleIdentifier;
+
+        return '['.$ruleId.'] '.$message;
     }
 }

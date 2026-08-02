@@ -42,18 +42,21 @@ class FakeAIReviewProviderTest extends TestCase
         );
     }
 
-    public function test_the_repository_summary_is_built_from_metadata_exactly(): void
+    public function test_every_emitted_string_begins_with_a_real_deterministic_rule_id(): void
     {
-        // Fixture: full_name=laravel/laravel, language=PHP, stargazers_count=25000.
         $response = (new FakeAIReviewProvider)->review($this->request($this->findings()));
+        $all = [$response->repositorySummary, ...$response->documentationObservations, ...$response->maintainabilityObservations, ...$response->potentialConcerns, ...$response->prioritizedRecommendations];
 
-        $this->assertSame(
-            'laravel/laravel is a PHP repository with 25000 stars.',
-            $response->repositorySummary
-        );
+        foreach ($all as $line) {
+            $this->assertMatchesRegularExpression(
+                '/^\[[A-Z]+-[A-Z]+-\d+\]\s/u',
+                $line,
+                "Fake provider output must start with a rule ID: {$line}"
+            );
+        }
     }
 
-    public function test_review_uses_exact_fallback_strings_when_no_finding_matches_any_observation(): void
+    public function test_review_uses_exact_fallback_strings_with_rule_references_when_no_finding_matches(): void
     {
         $response = (new FakeAIReviewProvider)->review($this->request([
             new AnalysisFinding(
@@ -67,18 +70,10 @@ class FakeAIReviewProviderTest extends TestCase
             ),
         ]));
 
-        $this->assertSame([
-            'No documentation findings to report.',
-        ], $response->documentationObservations);
-        $this->assertSame([
-            'No concerns flagged by deterministic checks.',
-        ], $response->potentialConcerns);
-        $this->assertSame([
-            'All inspected checks produced a verdict.',
-        ], $response->maintainabilityObservations);
-        $this->assertSame([
-            'No deterministic improvements pending for laravel/laravel.',
-        ], $response->prioritizedRecommendations);
+        $this->assertStringStartsWith('[GIT-CI-001]', $response->documentationObservations[0]);
+        $this->assertStringStartsWith('[GIT-CI-001]', $response->potentialConcerns[0]);
+        $this->assertStringStartsWith('[GIT-CI-001]', $response->maintainabilityObservations[0]);
+        $this->assertStringStartsWith('[GIT-CI-001]', $response->prioritizedRecommendations[0]);
     }
 
     public function test_review_filters_non_documentation_and_empty_recommendation_improvements(): void
@@ -97,18 +92,10 @@ class FakeAIReviewProviderTest extends TestCase
             ),
         ]));
 
-        $this->assertSame([
-            'No documentation findings to report.',
-        ], $response->documentationObservations);
-        $this->assertSame([
-            'SEC-ENV-001: Environment file — Environment file detected.',
-        ], $response->potentialConcerns);
-        $this->assertSame([
-            'All inspected checks produced a verdict.',
-        ], $response->maintainabilityObservations);
-        $this->assertSame([
-            'No deterministic improvements pending for laravel/laravel.',
-        ], $response->prioritizedRecommendations);
+        $this->assertStringStartsWith('[SEC-ENV-001]', $response->documentationObservations[0]);
+        $this->assertStringStartsWith('[SEC-ENV-001]', $response->potentialConcerns[0]);
+        $this->assertStringContainsString('Environment file', $response->potentialConcerns[0]);
+        $this->assertStringContainsString('Environment file detected.', $response->potentialConcerns[0]);
     }
 
     private function request(array $findings): AIReviewRequest
@@ -120,34 +107,29 @@ class FakeAIReviewProviderTest extends TestCase
         );
     }
 
-    private function metadata(): GitHubRepositoryMetadata
-    {
-        $payload = json_decode(
-            file_get_contents(base_path('tests/Fixtures/github-repository.json')),
-            true,
-            512,
-            JSON_THROW_ON_ERROR
-        );
-
-        return GitHubRepositoryMetadata::fromGitHubResponse($payload);
-    }
-
-    /**
-     * @return list<AnalysisFinding>
-     */
+    /** @return list<AnalysisFinding> */
     private function findings(): array
     {
         return [
             new AnalysisFinding(
                 'DOC-README-001',
                 RuleCategory::Documentation,
-                FindingStatus::Improvement,
+                FindingStatus::Pass,
                 FindingScope::Inspected,
                 FindingSeverity::Medium,
-                'README missing',
-                'README was not detected.',
-                null,
-                'Add a README explaining setup and usage.'
+                'README present',
+                'A README file was found.'
+            ),
+            new AnalysisFinding(
+                'SEC-ENV-001',
+                RuleCategory::SecurityHygiene,
+                FindingStatus::Improvement,
+                FindingScope::Inspected,
+                FindingSeverity::High,
+                'Committed .env file',
+                'A tracked .env file was detected.',
+                '.env',
+                'Remove the file and rotate any exposed credentials.'
             ),
             new AnalysisFinding(
                 'GIT-CI-001',
@@ -159,5 +141,32 @@ class FakeAIReviewProviderTest extends TestCase
                 'Workflow directory could not be read.'
             ),
         ];
+    }
+
+    private function metadata(): GitHubRepositoryMetadata
+    {
+        return GitHubRepositoryMetadata::fromGitHubResponse([
+            'full_name' => 'laravel/laravel',
+            'html_url' => 'https://github.com/laravel/laravel',
+            'owner' => ['login' => 'laravel'],
+            'name' => 'laravel',
+            'description' => null,
+            'default_branch' => 'main',
+            'language' => 'PHP',
+            'stargazers_count' => 25000,
+            'forks_count' => 0,
+            'open_issues_count' => 0,
+            'watchers_count' => 0,
+            'subscribers_count' => null,
+            'size' => 1,
+            'created_at' => null,
+            'updated_at' => null,
+            'pushed_at' => null,
+            'archived' => false,
+            'fork' => false,
+            'visibility' => 'public',
+            'license' => null,
+            'topics' => [],
+        ]);
     }
 }

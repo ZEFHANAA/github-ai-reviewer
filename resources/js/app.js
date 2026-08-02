@@ -2,7 +2,8 @@
 // Native DOM only: reads [data-repository-filters] controls and toggles
 // `hidden` on [data-filter-target="finding"] cards matching the active
 // category/severity/status values. When no card is visible, shows the
-// empty state. No state manager, no abstraction.
+// empty state and reports a live result count for screen readers.
+// No state manager, no abstraction.
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-analyze-form]').forEach((form) => {
         form.addEventListener('submit', () => {
@@ -30,10 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const empty = document.querySelector('[data-finding-empty]');
     const controls = Array.from(container.querySelectorAll('[data-filter-key]'));
     const clearButton = container.querySelector('[data-filter-clear]');
+    const status = container.querySelector('[data-filter-status]');
 
     if (cards.length === 0 || controls.length === 0) {
         return;
     }
+
+    const focusTarget = container.querySelector('[data-filter-key]') || clearButton;
 
     const resetValues = () => controls.forEach((control) => { control.value = ''; });
 
@@ -50,6 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         cards.forEach((card) => {
             const matches = keys.every((key) => card.dataset[key] === active[key]);
+            // If the focused card is about to be hidden, move focus to a stable
+            // control so keyboard users never lose their place to the body.
+            if (!matches && !card.hidden && card.contains(document.activeElement) && focusTarget) {
+                focusTarget.focus();
+            }
             card.hidden = !matches;
             if (matches) {
                 visibleCount += 1;
@@ -58,6 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (empty) {
             empty.hidden = visibleCount !== 0;
+        }
+
+        if (status) {
+            status.textContent = visibleCount === 0
+                ? 'No matching repository checks.'
+                : `Showing ${visibleCount} of ${cards.length} repository checks.`;
         }
     };
 
