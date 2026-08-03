@@ -17,6 +17,21 @@ provider or provision secrets — see the "Provider selection" note at the end.
   headers via `bootstrap/app.php` so generated URLs use the public HTTPS
   origin; do not expose the PHP server directly to the internet.
 
+### Reverse proxy / trusted proxies
+
+By default the app trusts **every** proxy (`TRUSTED_PROXIES=*`), which keeps
+GitHub Codespaces port-forwarding (dynamic IPs) working without configuration.
+In a production deployment behind a known proxy (Cloudflare, Render, nginx),
+narrow `TRUSTED_PROXIES` to the proxy's CIDR range:
+
+```env
+# Render (internal network)
+TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12
+
+# Cloudflare (static list, see https://www.cloudflare.com/ips/):
+# TRUSTED_PROXIES=173.245.48.0/20,103.21.244.0/22,...
+```
+
 ---
 
 ## Environment variables
@@ -159,7 +174,8 @@ a debugging window), remember to clear it with `php artisan optimize:clear`.
 ## Docker deploy steps
 
 The project ships a multi-stage `Dockerfile` (Node 22 frontend build →
-FrankenPHP PHP 8.3 runtime), a `.dockerignore`, and a `render.yaml` blueprint.
+FrankenPHP PHP 8.3 runtime), a `.dockerignore`, and a `render.yaml` blueprint
+for one-click deployment on Render.
 
 1. **Build the image.**
 

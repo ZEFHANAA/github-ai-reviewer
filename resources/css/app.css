@@ -75,3 +75,25 @@
 [data-ring-arc] {
     transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ───── respect prefers-reduced-motion ───── */
+@media (prefers-reduced-motion: reduce) {
+    [data-ring-arc] {
+        transition: none !important;
+    }
+    .skeleton {
+        animation: none !important;
+    }
+    .card-glow:hover {
+        transition: none !important;
+    }
+    .toast {
+        animation: none !important;
+    }
+    [data-filter-target="finding"] {
+        transition: none !important;
+    }
+    .filter-match {
+        animation: none !important;
+    }
+}
