@@ -5,11 +5,73 @@
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+        'Segoe Symbol', 'Noto Color Emoji';
 }
 
 @layer base {
     body {
         @apply bg-slate-950 text-slate-100 antialiased;
     }
+}
+
+/* ───── skeleton pulse ───── */
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+.skeleton {
+    @apply rounded bg-slate-700/40 animate-[skeleton-pulse_1.5s_ease-in-out_infinite];
+}
+
+/* ───── card glow on hover ───── */
+.card-glow {
+    @apply transition-all duration-200 ease-out;
+}
+.card-glow:hover {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 4px 20px rgba(99, 102, 241, 0.08);
+}
+
+/* ───── toast ───── */
+.toast {
+    @apply fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/30;
+    animation: toast-in 0.25s ease-out, toast-out 0.2s ease-in 1.8s forwards;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes toast-out {
+    from { opacity: 1; }
+    to   { opacity: 0; transform: translate(-50%, -4px); }
+}
+
+/* ───── finding filter transition ───── */
+[data-filter-target="finding"] {
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+[data-filter-target="finding"][hidden] {
+    display: block !important;
+    opacity: 0;
+    transform: scale(0.97);
+    pointer-events: none;
+    position: absolute;
+    visibility: hidden;
+}
+
+/* ───── filter match burst ───── */
+@keyframes filter-match {
+    0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+    100% { box-shadow: 0 0 0 12px rgba(99, 102, 241, 0); }
+}
+
+.filter-match {
+    animation: filter-match 0.5s ease-out;
+}
+
+/* ───── ring transition ───── */
+[data-ring-arc] {
+    transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
