@@ -134,6 +134,7 @@ Current baseline: **217 tests passed, 957 assertions**.
 - [Feature documentation](docs/08-FEATURES.md)
 - [Known limitations](docs/09-KNOWN-LIMITATIONS.md)
 - [Demo report](docs/10-DEMO-REPORT.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
 - [Architecture diagram](docs/architecture.svg)
 - [Development roadmap](docs/07-ROADMAP.md)
 - [Engineering documentation](docs/)
@@ -142,7 +143,11 @@ Reproducible local screenshots using the fake AI provider are documented in [the
 
 ## Project Status
 
-Phases 1-10 are complete. Phase 11, public deployment, has not started. There is no public demo deployment claim.
+Phases 1-10 are complete. Phase 11 configuration and deployment
+documentation are in place; the application has a deployment guide
+([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)) covering environment variables,
+database, storage, queue, cache, scheduler, and Docker steps. There is no
+public demo deployment claim.
 
 ## License
 
