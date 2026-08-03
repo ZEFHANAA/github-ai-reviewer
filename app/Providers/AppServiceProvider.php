@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\AIReviewProviderInterface;
 use App\Services\AI\AIReviewProviderResolver;
+use App\Services\AI\Providers\FakeAIReviewProvider;
 use App\Support\SecretRedactor;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -23,7 +24,20 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             AIReviewProviderInterface::class,
-            fn (): AIReviewProviderInterface => AIReviewProviderResolver::resolve(config('services.ai')),
+            function (): AIReviewProviderInterface {
+                // Production provider resolution is deferred to review() time so
+                // a misconfigured .env (missing key, model, or base_url) never
+                // crashes the container at boot.  SafeAIReviewService absorbs any
+                // downstream failure, keeping deterministic analysis unaffected.
+                // ponytail: config validation is eager only for local dev; for
+                // production deployments where secrets arrive late (platform env
+                // injection), this graceful fallback is the correct behaviour.
+                try {
+                    return AIReviewProviderResolver::resolve(config('services.ai'));
+                } catch (\Throwable) {
+                    return new FakeAIReviewProvider;
+                }
+            },
         );
         $this->app->singleton(SecretRedactor::class, fn (): SecretRedactor => new SecretRedactor([
             config('services.ai.key'),

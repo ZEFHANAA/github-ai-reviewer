@@ -213,6 +213,36 @@ free-tier availability and requirements at deploy time (a current candidate
 is Render, for which a `render.yaml` blueprint already exists). Whatever you
 pick, the steps above (env, DB, key, migrations, HTTPS proxy) apply unchanged.
 
+### AI provider configuration
+
+The app ships with two AI review modes:
+
+| `AI_PROVIDER` | Behaviour |
+| --- | --- |
+| `fake` (default) | Deterministic stand-in. No network calls. Always available. |
+| `openai_compatible` / `openai` / `openrouter` | OpenAI-compatible chat-completions endpoint. Requires `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`. |
+
+Configuration flow:
+
+1. Set `AI_PROVIDER=openai_compatible` in `.env`.
+2. Provide `AI_BASE_URL` (e.g. `https://api.openai.com/v1` or your OpenRouter / self-hosted endpoint).
+3. Provide `AI_MODEL` (e.g. `gpt-4o-mini`).
+4. Provide `AI_API_KEY` (server-side secret; redacted automatically from failure logs).
+5. `AI_ENDPOINT` defaults to `chat/completions`; change only for non-standard providers.
+6. `AI_TIMEOUT` defaults to 30; valid range 5–120 seconds.
+
+**Fallback behaviour:** if any of `AI_BASE_URL`, `AI_API_KEY`, or `AI_MODEL` is
+missing or empty, the container silently substitutes the deterministic `fake`
+provider — the application never crashes at boot. Any runtime provider failure
+(timeout, HTTP error, malformed response, unknown Rule ID in the AI output) is
+caught by `SafeAIReviewService` and rendered as "AI review is temporarily
+unavailable" while the deterministic scores and findings remain intact.
+
+**AI contract (preserved):** every AI output string must begin with a
+deterministic rule ID (`[RULE-ID] prose`). The validator rejects invented rule
+IDs, and `SafeAIReviewService` downgrades invalid responses to unavailable. The
+AI layer never touches scores, the Rule Registry, or deterministic findings.
+
 ## Verification checklist
 
 Before declaring a deploy healthy:
