@@ -36,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // ponytail: only guards Laravel's built-in debug mode. App-level logging
+        // and error-report sensitivity should be audited separately.
+        if (app()->environment() !== 'local') {
+            config()->set('app.debug', false);
+        }
+
         RateLimiter::for('repository-analysis', fn (Request $request) => Limit::perMinute(self::ANALYSIS_ATTEMPTS_PER_MINUTE)
             ->by($request->ip())
             ->response(fn (): Response => response()->view('repositories.error', [
