@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Honour X-Forwarded-* headers so generated URLs (Vite assets, url()) use
         // the public https origin when running behind a TLS-terminating proxy such
-        // as GitHub Codespaces port-forwarding or Render. Without this the app emits
+        // as GitHub Codespaces port-forwarding. Without this the app emits
         // the internal http://127.0.0.1:PORT origin, which the browser blocks as
         // mixed content on an https page -> pages render without CSS/JS.
         //

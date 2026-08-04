@@ -13,7 +13,7 @@ provider or provision secrets — see the "Provider selection" note at the end.
 - PHP 8.3+ with extensions: `pdo_sqlite` (or `pdo_pgsql`/`pdo_mysql`), `zip`, `intl`.
 - Composer, Node.js 22+ (build time only).
 - A TLS-terminating reverse proxy or CDN in front of the app (Cloudflare,
-  Render's edge, nginx + Let's Encrypt, etc.). The app trusts forwarded
+  nginx + Let's Encrypt, etc.). The app trusts forwarded
   headers via `bootstrap/app.php` so generated URLs use the public HTTPS
   origin; do not expose the PHP server directly to the internet.
 
@@ -21,13 +21,10 @@ provider or provision secrets — see the "Provider selection" note at the end.
 
 By default the app trusts **every** proxy (`TRUSTED_PROXIES=*`), which keeps
 GitHub Codespaces port-forwarding (dynamic IPs) working without configuration.
-In a production deployment behind a known proxy (Cloudflare, Render, nginx),
+In a production deployment behind a known proxy (Cloudflare, nginx),
 narrow `TRUSTED_PROXIES` to the proxy's CIDR range:
 
 ```env
-# Render (internal network)
-TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12
-
 # Cloudflare (static list, see https://www.cloudflare.com/ips/):
 # TRUSTED_PROXIES=173.245.48.0/20,103.21.244.0/22,...
 ```
@@ -174,8 +171,7 @@ a debugging window), remember to clear it with `php artisan optimize:clear`.
 ## Docker deploy steps
 
 The project ships a multi-stage `Dockerfile` (Node 22 frontend build →
-FrankenPHP PHP 8.3 runtime), a `.dockerignore`, and a `render.yaml` blueprint
-for one-click deployment on Render.
+FrankenPHP PHP 8.3 runtime) and a `.dockerignore`.
 
 1. **Build the image.**
 
@@ -207,26 +203,19 @@ for one-click deployment on Render.
      -p 8000:8000 github-ai-reviewer
    ```
 
-6. **Proxy HTTPS in front** via Cloudflare, Render edge, or nginx + certbot.
+6. **Proxy HTTPS in front** via Cloudflare, or nginx + certbot.
    The app trusts `X-Forwarded-*` so links use the public origin.
 
 7. **Verify** the readiness probe:
    - `GET /up` returns `200` when the app can bootstrap.
    - `GET /` returns the landing page.
 
-### Persistent volume on render.yaml
-
-If you deploy via `render.yaml`, attach a disk and set
-`DB_DATABASE=/var/app/database/database.sqlite` so the SQLite file survives
-redeploys.
-
 ---
 
 ## Provider selection
 
 This guide deliberately leaves the hosting provider open. Choose based on
-free-tier availability and requirements at deploy time (a current candidate
-is Render, for which a `render.yaml` blueprint already exists). Whatever you
+free-tier availability and requirements at deploy time. Whatever you
 pick, the steps above (env, DB, key, migrations, HTTPS proxy) apply unchanged.
 
 ### AI provider configuration
