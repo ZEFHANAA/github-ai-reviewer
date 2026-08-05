@@ -19,7 +19,7 @@ final class AIReviewProviderResolver
     public const MIN_TIMEOUT = 5;
 
     /** Maximum allowed AI request timeout, in seconds. */
-    public const MAX_TIMEOUT = 120;
+    public const MAX_TIMEOUT = 180;
 
     /** Fallback timeout when the configured value is missing or invalid, in seconds. */
     public const DEFAULT_TIMEOUT = 30;
