@@ -55,7 +55,7 @@ class OpenAICompatibleResponseMapperTest extends TestCase
 
     public function test_it_rejects_malformed_json_content(): void
     {
-        $this->expectException(JsonException::class);
+        $this->expectException(UnexpectedValueException::class);
 
         $this->mapper()->map(['choices' => [['message' => ['content' => 'not json']]]]);
     }

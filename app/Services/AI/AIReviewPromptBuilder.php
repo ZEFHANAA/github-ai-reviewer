@@ -13,8 +13,8 @@ final class AIReviewPromptBuilder
 
     public const DATA_END = '<<<END_REPOSITORY_DATA>>>';
 
-    /** 12 KB keeps request payloads predictable while retaining normal repository context. */
-    public const MAX_PROMPT_BYTES = 12000;
+    /** 6 KB keeps request payloads small enough for the upstream model timeout. */
+    public const MAX_PROMPT_BYTES = 6000;
 
     /** Marker appended inside the data block when findings were dropped to fit the byte limit. */
     public const TRUNCATION_NOTICE = '[repository data truncated to fit the prompt size limit]';
@@ -105,7 +105,8 @@ final class AIReviewPromptBuilder
             '- The deterministic analysis is authoritative. You must not change, recompute, or dispute the score, the category scores, or the findings.',
             '- You must not invent findings, files, evidence, rule IDs, scores, statuses, or severities that the data does not contain.',
             '- Write qualitative prose only; produce no scores and no numeric ratings.',
-            '- Every output string must begin with exactly one deterministic rule ID from the data block, formatted [RULE-ID].',
+            '- Return your response as a JSON object with exactly these keys: repository_summary, documentation_observations, maintainability_observations, potential_concerns, prioritized_recommendations.',
+            '- Every string value must begin with exactly one deterministic rule ID from the data block, formatted [RULE-ID].',
             '',
             'Produce exactly these sections, in this order:',
             ...array_map(fn (string $section): string => '- '.$section, self::SECTIONS),

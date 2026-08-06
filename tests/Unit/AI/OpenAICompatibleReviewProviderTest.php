@@ -74,7 +74,7 @@ class OpenAICompatibleReviewProviderTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(JsonException::class);
+        $this->expectException(UnexpectedValueException::class);
 
         $this->provider()->review($this->request());
     }

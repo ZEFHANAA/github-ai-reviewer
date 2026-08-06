@@ -27,13 +27,69 @@ final readonly class OpenAICompatibleResponseMapper
             throw new UnexpectedValueException('The AI provider returned no message content.');
         }
 
-        $decoded = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        $json = $this->extractJson($content);
+
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new UnexpectedValueException('The AI provider returned non-JSON content.');
+        }
 
         if (! is_array($decoded) || array_is_list($decoded)) {
             throw new UnexpectedValueException('The AI provider returned a non-object payload.');
         }
 
         return $decoded;
+    }
+
+    /** Pull the first balanced JSON object out of prose or reasoning noise. */
+    private function extractJson(string $content): string
+    {
+        $start = strpos($content, '{');
+
+        if ($start === false) {
+            throw new UnexpectedValueException('The AI provider returned non-JSON content.');
+        }
+
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        $len = strlen($content);
+
+        for ($i = $start; $i < $len; $i++) {
+            $ch = $content[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($ch === '\\' && $inString) {
+                $escape = true;
+                continue;
+            }
+
+            if ($ch === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($ch === '{') {
+                $depth++;
+            } elseif ($ch === '}') {
+                $depth--;
+
+                if ($depth === 0) {
+                    return substr($content, $start, $i - $start + 1);
+                }
+            }
+        }
+
+        throw new UnexpectedValueException('The AI provider returned non-JSON content.');
     }
 
     /**
@@ -63,6 +119,10 @@ final readonly class OpenAICompatibleResponseMapper
     private function stringList(array $decoded, string $key): array
     {
         $value = $decoded[$key] ?? [];
+
+        if (is_string($value)) {
+            $value = [$value];
+        }
 
         if (! is_array($value) || ! array_is_list($value)) {
             throw new UnexpectedValueException("The AI provider returned an invalid {$key} value.");

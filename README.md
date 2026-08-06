@@ -4,7 +4,7 @@ AI-assisted GitHub repository health analyzer built with Laravel.
 
 [![Laravel](https://img.shields.io/badge/Laravel-13.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![Tests](https://img.shields.io/badge/tests-217%20passing-brightgreen)](#verification)
+[![Tests](https://img.shields.io/badge/tests-242%20passing-brightgreen)](#verification)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ## What It Does
@@ -105,9 +105,9 @@ Do not commit `.env`, API keys, tokens, or generated local database files.
 | `AI_ENDPOINT` | Provider endpoint | `chat/completions` |
 | `AI_MODEL` | Provider model name | empty |
 | `AI_API_KEY` | Server-side provider key | empty |
-| `AI_TIMEOUT` | Request timeout, clamped to 5-120 seconds | `30` |
+|| `AI_TIMEOUT` | Request timeout, clamped to 5-180 seconds | `30` |
 
-Fake provider mode avoids network AI calls and produces deterministic demo output.
+The OpenAI-compatible provider sends `stream: false` and extracts JSON from prose responses. Some routers require removing `response_format`. The prompt is capped at 6 KB to prevent upstream model timeouts.
 
 ## Verification
 
@@ -118,7 +118,7 @@ npm run build
 git diff --check
 ```
 
-Current baseline: **217 tests passed, 957 assertions**.
+Current baseline: **242 tests passed, 1069 assertions**.
 
 ## Security Boundary
 

@@ -45,7 +45,7 @@ final readonly class OpenAICompatibleReviewProvider implements AIReviewProviderI
             ->post(rtrim($this->baseUrl, '/').'/'.ltrim($this->endpoint, '/'), [
                 'model' => $this->model,
                 'messages' => [['role' => 'user', 'content' => $request->prompt]],
-                'response_format' => ['type' => 'json_object'],
+                'stream' => false,
             ])
             ->throw();
 
