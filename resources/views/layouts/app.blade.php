@@ -8,7 +8,7 @@
             content="@yield('meta_description', 'An explainable health reviewer for public GitHub repositories.')"
         >
 
-        <title>@hasSection('title')@yield('title') · @endif{{ config('app.name') }}</title>
+        <title>@hasSection('title')@yield('title') ?? @endif{{ config('app.name') }}</title>
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
             @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -30,7 +30,31 @@
                         <span>{{ config('app.name') }}</span>
                     </a>
 
-                    <span class="rounded-full border border-indigo-300/20 bg-indigo-400/10 px-3 py-1 text-xs font-medium text-indigo-200">Public repositories</span>
+                    <div class="flex items-center gap-3">
+                        <!-- Language Switcher Toggle -->
+                        <div class="flex items-center rounded-full border border-white/15 bg-slate-900/80 p-0.5 text-xs shadow-inner">
+                            <a
+                                href="{{ route('lang.switch', 'id') }}"
+                                class="flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition {{ app()->getLocale() === 'id' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-white' }}"
+                                title="Bahasa Indonesia"
+                            >
+                                <span>????????</span>
+                                <span>ID</span>
+                            </a>
+                            <a
+                                href="{{ route('lang.switch', 'en') }}"
+                                class="flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition {{ app()->getLocale() === 'en' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-white' }}"
+                                title="English"
+                            >
+                                <span>????????</span>
+                                <span>EN</span>
+                            </a>
+                        </div>
+
+                        <span class="hidden rounded-full border border-indigo-300/20 bg-indigo-400/10 px-3 py-1 text-xs font-medium text-indigo-200 sm:inline-block">
+                            {{ __('Public repositories') }}
+                        </span>
+                    </div>
                 </nav>
             </header>
 
@@ -40,8 +64,8 @@
 
             <footer class="border-t border-white/10">
                 <div class="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-                    <p>Explainable repository-health guidance for public GitHub projects.</p>
-                    <p>AI-assisted, not AI-dependent.</p>
+                    <p>{{ __('Explainable repository-health guidance for public GitHub projects.') }}</p>
+                    <p>{{ __('AI-assisted, not AI-dependent.') }}</p>
                 </div>
             </footer>
         </div>

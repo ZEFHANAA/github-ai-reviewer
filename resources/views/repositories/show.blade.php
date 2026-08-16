@@ -8,16 +8,16 @@
         {{-- ═══════════════ HEADER —╗ --}}
         <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
             <div class="max-w-3xl">
-                <p class="text-sm font-semibold text-indigo-200">GitHub repository</p>
+                <p class="text-sm font-semibold text-indigo-200">{{ __('GitHub repository') }}</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">{{ $repository->fullName }}</h1>
-                <p class="mt-5 text-lg leading-8 text-slate-300">{{ $repository->description ?? 'No repository description is available.' }}</p>
+                <p class="mt-5 text-lg leading-8 text-slate-300">{{ $repository->description ?? __('No repository description is available.') }}</p>
                 @php
                     $scheme = is_string($repository->url) ? parse_url($repository->url, PHP_URL_SCHEME) : null;
                     $urlIsHttps = $scheme === 'https';
                 @endphp
                 @if ($urlIsHttps)
                     <a href="{{ $repository->url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 transition hover:text-white" rel="noopener noreferrer" target="_blank">
-                        View on GitHub
+                        {{ __('View on GitHub') }}
                         <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
                     </a>
                 @else
@@ -27,10 +27,10 @@
 
             <div class="flex flex-wrap items-center gap-3">
                 <div class="rounded-xl border border-indigo-300/20 bg-indigo-400/10 px-4 py-3 text-sm text-indigo-100">
-                    Metadata retrieved from GitHub
+                    {{ __('Metadata retrieved from GitHub') }}
                 </div>
                 <a href="{{ route('home') }}" class="inline-flex rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
-                    Analyze another repository
+                    {{ __('Analyze another repository') }}
                 </a>
             </div>
         </div>
@@ -60,8 +60,8 @@
                     $offset = $circumference - ($score / 100) * $circumference;
                 @endphp
                 <div class="flex shrink-0 flex-col items-center gap-4" data-ring-container>
-                    <p class="text-base sm:text-lg font-semibold uppercase tracking-wider text-indigo-200">Overall Repository Health Score</p>
-                    <p class="-mt-1 text-sm text-slate-400">Deterministic score</p>
+                    <p class="text-base sm:text-lg font-semibold uppercase tracking-wider text-indigo-200">{{ __('Overall Repository Health Score') }}</p>
+                    <p class="-mt-1 text-sm text-slate-400">{{ __('Deterministic score') }}</p>
                     <div class="relative size-40 sm:size-48" data-ring-svg>
                         <svg class="size-full -rotate-90" viewBox="0 0 128 128" aria-hidden="true">
                             {{-- track --}}
@@ -80,18 +80,18 @@
                         </div>
                     </div>
                     <span class="inline-flex items-center rounded-full border px-4 py-1.5 text-base font-semibold {{ $score >= 80 ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300' : ($score >= 60 ? 'border-amber-400/30 bg-amber-400/15 text-amber-300' : 'border-rose-400/30 bg-rose-400/15 text-rose-300') }}">
-                        {{ $label }}
+                        {{ __($label) }}
                     </span>
                     <div class="flex gap-5 text-sm text-slate-400">
-                        <span class="text-emerald-300">{{ $report->summary['pass'] ?? 0 }} passed</span>
-                        <span class="text-amber-300">{{ $report->summary['improvement'] ?? 0 }} improvement</span>
-                        <span class="text-slate-400">{{ $report->summary['unknown'] ?? 0 }} unknown</span>
+                        <span class="text-emerald-300">{{ $report->summary['pass'] ?? 0 }} {{ __('passed') }}</span>
+                        <span class="text-amber-300">{{ $report->summary['improvement'] ?? 0 }} {{ __('improvement') }}</span>
+                        <span class="text-slate-400">{{ $report->summary['unknown'] ?? 0 }} {{ __('unknown') }}</span>
                     </div>
                 </div>
 
                 {{-- ··· Category Scores ··· --}}
                 <div class="flex-1 md:pl-4">
-                    <p class="text-sm font-semibold uppercase tracking-wider text-indigo-200">Category Scores</p>
+                    <p class="text-sm font-semibold uppercase tracking-wider text-indigo-200">{{ __('Category Scores') }}</p>
                     <p class="mt-1 text-xs text-slate-400">Deterministic — authoritative</p>
                     <div class="mt-5 grid gap-4 sm:grid-cols-2">
                         @foreach ($report->categoryScores as $categoryName => $catScore)
@@ -320,7 +320,7 @@
                 @endif
             </div>
             <h2 class="mt-2 text-2xl font-semibold text-white">Qualitative review</h2>
-            <p class="mt-2 text-sm text-slate-400">Optional AI enrichment. Deterministic scores and findings remain authoritative.</p>
+            <p class="mt-2 text-sm text-slate-400">Optional AI enrichment. {{ __('Deterministic score') }}s and findings remain authoritative.</p>
 
             @php
                 $aiSections = collect($aiReview->sections)
