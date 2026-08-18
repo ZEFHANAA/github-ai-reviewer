@@ -14,7 +14,7 @@
   "Enter a canonical repository page URL. We will validate it before repository analysis is available.": "Masukkan URL halaman repositori. Kami akan memvalidasinya sebelum analisis repositori tersedia.",
   "GitHub repository URL": "URL repositori GitHub",
   "Analyze Repository": "Analisis Repositori",
-  "Analyzing???": "Sedang menganalisis???",
+  "Analyzing...": "Sedang menganalisis...",
   "Example: https://github.com/laravel/laravel": "Contoh: https://github.com/laravel/laravel",
   "Explainable repository-health guidance for public GitHub projects.": "Panduan kesehatan repositori yang dapat dijelaskan untuk proyek GitHub publik.",
   "AI-assisted, not AI-dependent.": "Dibantu AI, tidak bergantung pada AI.",

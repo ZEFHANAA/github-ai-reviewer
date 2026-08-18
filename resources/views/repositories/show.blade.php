@@ -208,17 +208,11 @@
                                 'low' => 'bg-sky-400/15 border-sky-400/30 text-sky-200',
                                 default => 'bg-slate-400/15 border-slate-400/30 text-slate-200',
                             };
-                            $sevIcon = match($finding->severity->value) {
-                                'high' => '🔴',
-                                'medium' => '🟠',
-                                'low' => '🔵',
-                                default => '⚪',
-                            };
                             $sevBadge = match($finding->severity->value) {
-                                'high' => $sevIcon.' Critical',
-                                'medium' => $sevIcon.' High',
-                                'low' => $sevIcon.' Medium',
-                                default => $sevIcon.' Info',
+                                'high' => 'High',
+                                'medium' => 'Medium',
+                                'low' => 'Low',
+                                default => 'Info',
                             };
                             $sevBar = match($finding->severity->value) {
                                 'high' => 'bg-rose-400 shadow-[0_0_6px_1px_rgba(251,113,133,0.3)]',
@@ -273,10 +267,10 @@
                             default => 'border-slate-400/30 bg-slate-400/15 text-slate-200',
                         };
                         $sevBadge = match($finding->severity->value) {
-                            'high' => '🔴 Critical',
-                            'medium' => '🟠 High',
-                            'low' => '🔵 Medium',
-                            default => '⚪ Info',
+                            'high' => 'High',
+                            'medium' => 'Medium',
+                            'low' => 'Low',
+                            default => 'Info',
                         };
                     @endphp
                     <article
@@ -334,19 +328,8 @@
                         'rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6',
                         'lg:col-span-2 border-indigo-300/20 bg-indigo-400/10' => $section['title'] === 'Prioritized Recommendations',
                     ])>
-                        {{-- section header with icon --}}
-                        @php
-                            $sectionIcon = match($section['title']) {
-                                'Repository Summary' => '📋',
-                                'Documentation Observations' => '📝',
-                                'Maintainability Observations' => '🔧',
-                                'Potential Concerns' => '⚠️',
-                                'Prioritized Recommendations' => '🎯',
-                                default => '💡',
-                            };
-                        @endphp
-                        <h3 class="flex items-center gap-2 text-lg font-semibold text-white">
-                            <span aria-hidden="true">{{ $sectionIcon }}</span>
+                        {{-- section header --}}
+                        <h3 class="text-lg font-semibold text-white">
                             {{ $section['title'] }}
                         </h3>
 
@@ -368,10 +351,10 @@
                                             default => 'border-slate-400/30 bg-slate-400/15 text-slate-200',
                                         };
                                         $aiSevBadge = match($aiSev) {
-                                            'high' => '🔴 Critical',
-                                            'medium' => '🟠 High',
-                                            'low' => '🔵 Medium',
-                                            default => '⚪ Info',
+                                            'high' => 'High',
+                                            'medium' => 'Medium',
+                                            'low' => 'Low',
+                                            default => 'Info',
                                         };
                                     @endphp
                                     <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4 transition hover:bg-white/[0.07]">

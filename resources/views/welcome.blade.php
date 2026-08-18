@@ -68,7 +68,7 @@
                     <button
                         type="submit"
                         data-analyze-submit
-                        data-loading-label="{{ __('Analyzing???') }}"
+                        data-loading-label="{{ __('Analyzing...') }}"
                         class="inline-flex justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         {{ __('Analyze Repository') }}
